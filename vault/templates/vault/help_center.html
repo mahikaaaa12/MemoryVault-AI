@@ -1,0 +1,197 @@
+{% extends "vault/base.html" %}
+{% load static %}
+
+{% block title %}Help Center{% endblock %}
+{% block topbar_title %}Help Center{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/account-pages.css' %}">
+{% endblock %}
+
+{% block content %}
+      <div class="page-header">
+        <div><h1>Help Center</h1><p>Find answers, guides, and support — all in one place</p></div>
+      </div>
+
+      <div class="seg-tabs" role="tablist" aria-label="Help Center sections">
+        <button class="seg-tab active" data-group="help" onclick="showTab('help','faq',this)"><i class="ti ti-help-circle"></i>FAQ</button>
+        <button class="seg-tab" data-group="help" onclick="showTab('help','contact',this)"><i class="ti ti-headset"></i>Contact Support</button>
+        <button class="seg-tab" data-group="help" onclick="showTab('help','docs',this)"><i class="ti ti-book"></i>Documentation</button>
+        <button class="seg-tab" data-group="help" onclick="showTab('help','tutorials',this)"><i class="ti ti-play"></i>Tutorials</button>
+        <button class="seg-tab" data-group="help" onclick="showTab('help','ai',this)"><i class="ti ti-sparkles"></i>AI Assistant</button>
+      </div>
+
+      <!-- FAQ -->
+      <div class="tab-panel active" data-group="help" data-name="faq">
+        <div class="help-hero">
+          <div class="help-hero-icon"><i class="ti ti-help-circle"></i></div>
+          <h1>How can we help?</h1>
+          <p>Search our FAQs and guides, or browse the categories below</p>
+          <div class="help-search"><i class="ti ti-search"></i><input type="search" placeholder="Search for help…" id="helpSearchInput" oninput="filterFaq(this.value)"></div>
+        </div>
+
+        <div class="section-title" style="font-size:15px;font-weight:600;color:var(--tp)">Quick Guides</div>
+        <div class="guide-grid">
+          <div class="guide-card"><div class="guide-icon"><i class="ti ti-rocket"></i></div><div class="guide-title">Getting Started</div><div class="guide-desc">Set up your account and capture your first memory</div><i class="ti ti-arrow-right guide-arrow"></i></div>
+          <div class="guide-card"><div class="guide-icon"><i class="ti ti-sparkles"></i></div><div class="guide-title">Using AI Assistant</div><div class="guide-desc">Ask questions and get instant answers from your memories</div><i class="ti ti-arrow-right guide-arrow"></i></div>
+          <div class="guide-card"><div class="guide-icon"><i class="ti ti-calendar"></i></div><div class="guide-title">Timeline &amp; Calendar</div><div class="guide-desc">Browse memories chronologically or by date</div><i class="ti ti-arrow-right guide-arrow"></i></div>
+          <div class="guide-card"><div class="guide-icon"><i class="ti ti-folders"></i></div><div class="guide-title">Organize with Collections</div><div class="guide-desc">Group related memories into custom folders</div><i class="ti ti-arrow-right guide-arrow"></i></div>
+        </div>
+
+        <div class="section-title" style="font-size:15px;font-weight:600;color:var(--tp)">Frequently Asked Questions</div>
+        <div class="accordion" id="faqList">
+          <div class="acc-item">
+            <div class="acc-q" onclick="toggleAccordion(this)">How does AI auto-summarization work?<i class="ti ti-chevron-down"></i></div>
+            <div class="acc-a"><div class="acc-a-inner">When you capture a memory, MemoryVault sends the content to its AI engine, which generates a short snippet shown on the memory card. You can disable this anytime in Settings → AI Preferences.</div></div>
+          </div><div class="acc-item">
+            <div class="acc-q" onclick="toggleAccordion(this)">Can I recover a deleted memory?<i class="ti ti-chevron-down"></i></div>
+            <div class="acc-a"><div class="acc-a-inner">Yes. Deleted memories move to Trash and stay recoverable for 30 days by default (configurable in Settings → Privacy → Data Retention) before they're permanently purged.</div></div>
+          </div><div class="acc-item">
+            <div class="acc-q" onclick="toggleAccordion(this)">How do Collections differ from Categories?<i class="ti ti-chevron-down"></i></div>
+            <div class="acc-a"><div class="acc-a-inner">Categories are fixed memory types (Note, Voice Memo, Meeting, etc.), while Collections are custom folders you create to group memories around a project, topic, or goal.</div></div>
+          </div><div class="acc-item">
+            <div class="acc-q" onclick="toggleAccordion(this)">Is my data shared to train the AI model?<i class="ti ti-chevron-down"></i></div>
+            <div class="acc-a"><div class="acc-a-inner">Only if you opt in. The 'Allow AI model improvement' toggle in Settings → Privacy is off by default — your memories stay private unless you choose otherwise.</div></div>
+          </div><div class="acc-item">
+            <div class="acc-q" onclick="toggleAccordion(this)">How do I export all of my data?<i class="ti ti-chevron-down"></i></div>
+            <div class="acc-a"><div class="acc-a-inner">Go to Profile → Export Data or Settings → Security → Danger Zone, choose a format (JSON, CSV, or PDF report), and we'll email you a secure download link.</div></div>
+          </div><div class="acc-item">
+            <div class="acc-q" onclick="toggleAccordion(this)">Can I use MemoryVault without an internet connection?<i class="ti ti-chevron-down"></i></div>
+            <div class="acc-a"><div class="acc-a-inner">Capturing works offline and syncs once you're back online, but AI features like auto-summarization and the AI Assistant require a connection.</div></div>
+          </div><div class="acc-item">
+            <div class="acc-q" onclick="toggleAccordion(this)">How do I change my notification preferences?<i class="ti ti-chevron-down"></i></div>
+            <div class="acc-a"><div class="acc-a-inner">Head to Settings → Notifications to toggle the daily digest, weekly insights report, and anniversary reminders independently.</div></div>
+          </div>
+        </div>
+
+        <div class="empty-state" id="faqEmptyState" style="display:none">
+          <div class="empty-icon" aria-hidden="true"><i class="ti ti-search-off"></i></div>
+          <h3>No matching questions</h3>
+          <p>We couldn't find any FAQ entries for that search. Try a different term, or ask our AI assistant below.</p>
+        </div>
+
+        <div class="contact-card">
+          <div class="contact-left">
+            <div class="help-hero-icon" style="width:48px;height:48px;border-radius:14px;font-size:22px"><i class="ti ti-headset"></i></div>
+            <div><div style="font-size:14px;font-weight:600;color:var(--tp)">Still need help?</div><div style="font-size:12.5px;color:var(--ts)">Our support team typically replies within a few hours</div></div>
+          </div>
+          <button class="btn btn-primary" onclick="showTab('help','contact', document.querySelector('.seg-tab[data-group=help]'))"><i class="ti ti-mail"></i>Contact Support</button>
+        </div>
+      </div>
+
+      <!-- CONTACT SUPPORT -->
+      <div class="tab-panel" data-group="help" data-name="contact">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-headset"></i></div><div><div class="sc-title">Contact Support</div><div class="sc-sub">Send us a message and we'll get back to you by email</div></div></div>
+          <div class="field"><label>Subject</label><input type="text" placeholder="What do you need help with?"></div>
+          <div class="field"><label>Message</label><textarea rows="5" placeholder="Describe your issue in detail…"></textarea></div>
+          <div class="field"><label>Priority</label>
+            <div class="pill-group">
+              <button class="pill-opt on">Low</button>
+              <button class="pill-opt">Medium</button>
+              <button class="pill-opt">High</button>
+            </div>
+          </div>
+          <button class="btn btn-primary" style="width:fit-content"><i class="ti ti-send"></i>Send Message</button>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(124,58,237,.15);color:var(--a4)"><i class="ti ti-mail"></i></div></div><div class="stat-value" style="font-size:16px">support@memoryvault.ai</div><div class="stat-label">Email us directly</div></div>
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(16,185,129,.15);color:var(--green)"><i class="ti ti-clock"></i></div></div><div class="stat-value" style="font-size:16px">&lt; 4 hours</div><div class="stat-label">Average response time</div></div>
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(59,130,246,.15);color:var(--blue)"><i class="ti ti-brand-discord"></i></div></div><div class="stat-value" style="font-size:16px">Community</div><div class="stat-label">Join our Discord</div></div>
+        </div>
+      </div>
+
+      <!-- DOCUMENTATION -->
+      <div class="tab-panel" data-group="help" data-name="docs">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-book"></i></div><div><div class="sc-title">Documentation</div><div class="sc-sub">In-depth references for every part of MemoryVault</div></div></div>
+          <div class="doc-list">
+            <div class="doc-row"><div class="doc-row-icon"><i class="ti ti-rocket"></i></div><div><div class="doc-row-title">Getting Started Guide</div><div class="doc-row-sub">Account setup, first capture, navigating the app</div></div><div class="doc-row-meta">5 min read<i class="ti ti-chevron-right"></i></div></div>
+            <div class="doc-row"><div class="doc-row-icon"><i class="ti ti-tag"></i></div><div><div class="doc-row-title">Memory Types &amp; Categories</div><div class="doc-row-sub">Notes, Voice Memos, Conversations, Meetings, Images, Documents, Activity</div></div><div class="doc-row-meta">4 min read<i class="ti ti-chevron-right"></i></div></div>
+            <div class="doc-row"><div class="doc-row-icon"><i class="ti ti-sparkles"></i></div><div><div class="doc-row-title">AI Assistant Reference</div><div class="doc-row-sub">Prompting tips, supported queries, related-memory suggestions</div></div><div class="doc-row-meta">7 min read<i class="ti ti-chevron-right"></i></div></div>
+            <div class="doc-row"><div class="doc-row-icon"><i class="ti ti-folders"></i></div><div><div class="doc-row-title">Collections &amp; Organization</div><div class="doc-row-sub">Creating, sharing, and nesting collections</div></div><div class="doc-row-meta">3 min read<i class="ti ti-chevron-right"></i></div></div>
+            <div class="doc-row"><div class="doc-row-icon"><i class="ti ti-shield-lock"></i></div><div><div class="doc-row-title">Security &amp; Privacy</div><div class="doc-row-sub">2FA, data retention, export, and account deletion</div></div><div class="doc-row-meta">6 min read<i class="ti ti-chevron-right"></i></div></div>
+            <div class="doc-row"><div class="doc-row-icon"><i class="ti ti-api"></i></div><div><div class="doc-row-title">API &amp; Integrations</div><div class="doc-row-sub">Connecting third-party apps to your MemoryVault</div></div><div class="doc-row-meta">8 min read<i class="ti ti-chevron-right"></i></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TUTORIALS -->
+      <div class="tab-panel" data-group="help" data-name="tutorials">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-play"></i></div><div><div class="sc-title">Video Tutorials</div><div class="sc-sub">Short walkthroughs of MemoryVault's core features</div></div></div>
+          <div class="doc-list">
+            <div class="doc-row"><div class="doc-row-icon" style="background:rgba(239,68,68,.12);color:#FB7185"><i class="ti ti-player-play"></i></div><div><div class="doc-row-title">MemoryVault in 3 Minutes</div><div class="doc-row-sub">A whirlwind tour of capture, search, and the AI Assistant</div></div><div class="doc-row-meta">3:12<i class="ti ti-chevron-right"></i></div></div>
+            <div class="doc-row"><div class="doc-row-icon" style="background:rgba(239,68,68,.12);color:#FB7185"><i class="ti ti-player-play"></i></div><div><div class="doc-row-title">Mastering Quick Capture</div><div class="doc-row-sub">Capturing notes, voice memos, and meetings on the fly</div></div><div class="doc-row-meta">4:45<i class="ti ti-chevron-right"></i></div></div>
+            <div class="doc-row"><div class="doc-row-icon" style="background:rgba(239,68,68,.12);color:#FB7185"><i class="ti ti-player-play"></i></div><div><div class="doc-row-title">Building Smart Collections</div><div class="doc-row-sub">Organizing memories by project, topic, or person</div></div><div class="doc-row-meta">5:30<i class="ti ti-chevron-right"></i></div></div>
+            <div class="doc-row"><div class="doc-row-icon" style="background:rgba(239,68,68,.12);color:#FB7185"><i class="ti ti-player-play"></i></div><div><div class="doc-row-title">Getting the Most from the AI Assistant</div><div class="doc-row-sub">Effective prompts and related-memory discovery</div></div><div class="doc-row-meta">6:18<i class="ti ti-chevron-right"></i></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI ASSISTANT (Help) -->
+      <div class="tab-panel" data-group="help" data-name="ai">
+        <div class="chat-shell">
+          <div class="chat-msgs" id="helpChatMsgs">
+            <div class="chat-msg ai"><div class="chat-avatar ai"><i class="ti ti-sparkles"></i></div><div class="chat-bubble ai">Hi! I'm the MemoryVault Help Assistant. Ask me anything about capturing memories, AI features, billing, or troubleshooting.</div></div>
+          </div>
+          <div class="chat-suggest">
+            <div class="chat-chip" onclick="sendHelpChip(this)">How do I export my data?</div>
+            <div class="chat-chip" onclick="sendHelpChip(this)">How do I recover a deleted memory?</div>
+            <div class="chat-chip" onclick="sendHelpChip(this)">Where do I change notification settings?</div>
+          </div>
+          <div class="chat-composer">
+            <input type="text" id="helpChatInput" placeholder="Ask the AI Assistant for help…" onkeydown="if(event.key==='Enter')sendHelpMsg()">
+            <button class="chat-send" onclick="sendHelpMsg()"><i class="ti ti-send"></i></button>
+          </div>
+        </div>
+      </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vault/js/account-pages.js' %}"></script>
+<script>
+function filterFaq(q){
+  q = q.toLowerCase();
+  let visibleCount = 0;
+  document.querySelectorAll('#faqList .acc-item').forEach(item=>{
+    const text = item.textContent.toLowerCase();
+    const match = text.includes(q);
+    item.style.display = match ? '' : 'none';
+    if (match) visibleCount++;
+  });
+  const emptyEl = document.getElementById('faqEmptyState');
+  if (emptyEl) emptyEl.style.display = visibleCount === 0 ? 'flex' : 'none';
+}
+function sendHelpMsg(){
+  const input = document.getElementById('helpChatInput');
+  const val = input.value.trim();
+  if(!val) return;
+  appendHelpMsg(val, 'user');
+  input.value = '';
+  setTimeout(()=>{
+    appendHelpMsg("Thanks for the question! A detailed answer would appear here, drawing on MemoryVault's documentation and your account context.", 'ai');
+  }, 600);
+}
+function sendHelpChip(el){
+  appendHelpMsg(el.textContent, 'user');
+  setTimeout(()=>{
+    appendHelpMsg("Great question — here's how that works in MemoryVault: head to the relevant section in Settings or Profile, and the option will be right there.", 'ai');
+  }, 600);
+}
+function appendHelpMsg(text, role){
+  const wrap = document.getElementById('helpChatMsgs');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  if(role==='user'){
+    div.innerHTML = '<div class="chat-avatar user">MM</div><div class="chat-bubble user"></div>';
+  } else {
+    div.innerHTML = '<div class="chat-avatar ai"><i class="ti ti-sparkles"></i></div><div class="chat-bubble ai"></div>';
+  }
+  div.querySelector('.chat-bubble').textContent = text;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+</script>
+{% endblock %}

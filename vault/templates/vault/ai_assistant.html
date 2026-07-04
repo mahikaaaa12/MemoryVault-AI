@@ -1,0 +1,493 @@
+{% extends "vault/base.html" %}
+{% load static %}
+
+{% block title %}AI Assistant{% endblock %}
+{% block topbar_title %}AI Assistant{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/account-pages.css' %}">
+<style>select{outline:none}select:focus{border-color:var(--a6)!important}</style>
+{% endblock %}
+
+{% block content %}
+      <div class="page-header">
+        <div><h1>AI Assistant</h1><p>Every AI capability in MemoryVault, in one place — all calls run live against Claude</p></div>
+      </div>
+
+      <div class="seg-tabs" role="tablist" aria-label="AI feature sections">
+        <button class="seg-tab active" data-group="ai" onclick="showTab('ai','chat',this)"><i class="ti ti-message-circle"></i>AI Chat</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','summarize',this)"><i class="ti ti-align-left"></i>Summarize</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','tagging',this)"><i class="ti ti-tags"></i>Auto-Tagging</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','categorize',this)"><i class="ti ti-category"></i>Categorization</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','related',this)"><i class="ti ti-git-branch"></i>Related</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','duplicates',this)"><i class="ti ti-copy"></i>Duplicates</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','nlsearch',this)"><i class="ti ti-search"></i>NL Search</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','insights',this)"><i class="ti ti-bulb"></i>Insights</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','recap',this)"><i class="ti ti-sun"></i>Daily Recap</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','weekly',this)"><i class="ti ti-calendar-stats"></i>Weekly Report</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','recommend',this)"><i class="ti ti-sparkles"></i>Recommendations</button>
+      </div>
+
+      <!-- 1. AI CHAT -->
+      <div class="tab-panel active" data-group="ai" data-name="chat">
+        <div class="chat-shell" style="height:520px">
+          <div class="chat-msgs" id="chatMsgs">
+            <div class="chat-msg ai"><div class="chat-avatar ai"><i class="ti ti-sparkles"></i></div><div class="chat-bubble ai">Hi! I'm grounded in your memories — ask me anything about them, or about your habits and patterns.</div></div>
+          </div>
+          <div class="chat-suggest">
+            <div class="chat-chip" onclick="sendChatChip(this)">What have I been thinking about lately?</div>
+            <div class="chat-chip" onclick="sendChatChip(this)">Summarize my work-related memories</div>
+            <div class="chat-chip" onclick="sendChatChip(this)">What ideas am I most excited about?</div>
+          </div>
+          <div class="chat-composer">
+            <input type="text" id="chatInput" placeholder="Ask your memory anything…" onkeydown="if(event.key==='Enter')sendChatMsg()">
+            <button class="chat-send" onclick="sendChatMsg()"><i class="ti ti-send"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. SUMMARIZE -->
+      <div class="tab-panel" data-group="ai" data-name="summarize">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-align-left"></i></div><div><div class="sc-title">Memory Summarization</div><div class="sc-sub">Pick a memory (or paste your own text) and generate a concise AI summary</div></div></div>
+          <div class="field"><label>Select a memory</label>
+            <select id="summarizeSelect" onchange="loadMemoryIntoField('summarizeSelect','summarizeContent','summarizeTitle')" style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit"></select>
+          </div>
+          <input type="hidden" id="summarizeTitle">
+          <div class="field"><label>Content</label><textarea id="summarizeContent" rows="5"></textarea></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runSummarize()" id="summarizeBtn"><i class="ti ti-sparkles"></i>Generate Summary</button>
+          <div id="summarizeResult" class="ai-insight" style="margin-top:14px;display:none">
+            <div class="ai-insight-header"><div class="ai-spark"><i class="ti ti-align-left"></i></div><div><div class="ai-insight-title">AI Summary</div><div class="ai-insight-sub">1-2 sentence summary</div></div></div>
+            <div class="ai-insight-text" id="summarizeOutput"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. AUTO-TAGGING -->
+      <div class="tab-panel" data-group="ai" data-name="tagging">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-tags"></i></div><div><div class="sc-title">Auto-Tagging</div><div class="sc-sub">Generate relevant tags automatically from a memory's content</div></div></div>
+          <div class="field"><label>Select a memory</label>
+            <select id="tagSelect" onchange="loadMemoryIntoField('tagSelect','tagContent','tagTitle')" style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit"></select>
+          </div>
+          <input type="hidden" id="tagTitle">
+          <div class="field"><label>Content</label><textarea id="tagContent" rows="5"></textarea></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runAutoTag()" id="tagBtn"><i class="ti ti-sparkles"></i>Generate Tags</button>
+          <div id="tagResult" style="margin-top:14px;display:none">
+            <div class="mem-tags" id="tagOutput"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. SMART CATEGORIZATION -->
+      <div class="tab-panel" data-group="ai" data-name="categorize">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-category"></i></div><div><div class="sc-title">Smart Categorization</div><div class="sc-sub">Classify a memory into the best-fit category and type automatically</div></div></div>
+          <div class="field"><label>Select a memory</label>
+            <select id="catSelect" onchange="loadMemoryIntoField('catSelect','catContent','catTitle')" style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit"></select>
+          </div>
+          <input type="hidden" id="catTitle">
+          <div class="field"><label>Content</label><textarea id="catContent" rows="5"></textarea></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runCategorize()" id="catBtn"><i class="ti ti-sparkles"></i>Categorize</button>
+          <div id="catResult" style="margin-top:14px;display:none;gap:10px" class="">
+            <div class="detail-card">
+              <div class="detail-row"><span class="detail-key">Suggested Category</span><span class="detail-val" id="catOutputCategory">—</span></div>
+              <div class="detail-row"><span class="detail-key">Suggested Type</span><span class="detail-val" id="catOutputType">—</span></div>
+              <div class="detail-row"><span class="detail-key">Confidence</span><span class="detail-val" id="catOutputConfidence">—</span></div>
+              <div class="detail-row"><span class="detail-key">Reasoning</span><span class="detail-val" id="catOutputReason" style="text-align:right;max-width:60%;font-weight:400;color:var(--ts)">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. RELATED MEMORIES -->
+      <div class="tab-panel" data-group="ai" data-name="related">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-git-branch"></i></div><div><div class="sc-title">Related Memories</div><div class="sc-sub">Find which of your other memories connect to a chosen one</div></div></div>
+          <div class="field"><label>Select a memory</label>
+            <select id="relatedSelect" style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit"></select>
+          </div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runRelated()" id="relatedBtn"><i class="ti ti-sparkles"></i>Find Related Memories</button>
+          <div class="memory-list" id="relatedResult" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- 6. DUPLICATE DETECTION -->
+      <div class="tab-panel" data-group="ai" data-name="duplicates">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-copy"></i></div><div><div class="sc-title">Duplicate Detection</div><div class="sc-sub">Scan your entire memory library for near-duplicate or overlapping entries</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runDuplicates()" id="dupBtn"><i class="ti ti-sparkles"></i>Scan for Duplicates</button>
+          <div id="dupResult" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+
+      <!-- 7. NATURAL LANGUAGE SEARCH -->
+      <div class="tab-panel" data-group="ai" data-name="nlsearch">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-search"></i></div><div><div class="sc-title">Natural Language Search</div><div class="sc-sub">Describe what you're looking for in plain English — no exact keywords needed</div></div></div>
+          <div class="field"><label>What are you looking for?</label><input type="text" id="nlsearchInput" placeholder="e.g. that thing Sarah told me about working early in the morning" onkeydown="if(event.key==='Enter')runNlSearch()"></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runNlSearch()" id="nlsearchBtn"><i class="ti ti-sparkles"></i>Search</button>
+          <div class="memory-list" id="nlsearchResult" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- 8. PRODUCTIVITY INSIGHTS -->
+      <div class="tab-panel" data-group="ai" data-name="insights">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-bulb"></i></div><div><div class="sc-title">Productivity Insights</div><div class="sc-sub">AI analysis of your capture habits and patterns over time</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runInsights()" id="insightsBtn"><i class="ti ti-sparkles"></i>Generate Insights</button>
+          <div id="insightsResult" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+
+      <!-- 9. DAILY RECAP -->
+      <div class="tab-panel" data-group="ai" data-name="recap">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-sun"></i></div><div><div class="sc-title">Daily Recap</div><div class="sc-sub">A short AI-written recap of today's captured memories</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runRecap()" id="recapBtn"><i class="ti ti-sparkles"></i>Generate Today's Recap</button>
+          <div id="recapResult" class="ai-insight" style="margin-top:14px;display:none">
+            <div class="ai-insight-header"><div class="ai-spark"><i class="ti ti-sun"></i></div><div><div class="ai-insight-title">Daily Recap</div><div class="ai-insight-sub" id="recapDate">Today</div></div></div>
+            <div class="ai-insight-text" id="recapOutput"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. WEEKLY REPORT -->
+      <div class="tab-panel" data-group="ai" data-name="weekly">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-calendar-stats"></i></div><div><div class="sc-title">Weekly Report</div><div class="sc-sub">A full AI-generated report covering this week's activity and trends</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runWeekly()" id="weeklyBtn"><i class="ti ti-sparkles"></i>Generate Weekly Report</button>
+          <div id="weeklyResult" class="ai-insight" style="margin-top:14px;display:none;white-space:pre-line">
+            <div class="ai-insight-header"><div class="ai-spark"><i class="ti ti-calendar-stats"></i></div><div><div class="ai-insight-title">Weekly Report</div><div class="ai-insight-sub">This week</div></div></div>
+            <div class="ai-insight-text" id="weeklyOutput" style="white-space:pre-line"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 11. AI RECOMMENDATIONS -->
+      <div class="tab-panel" data-group="ai" data-name="recommend">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-sparkles"></i></div><div><div class="sc-title">AI Recommendations</div><div class="sc-sub">Personalized next-step suggestions based on your memory library</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runRecommend()" id="recommendBtn"><i class="ti ti-sparkles"></i>Get Recommendations</button>
+          <div id="recommendResult" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vault/js/account-pages.js' %}"></script>
+<script>
+/* ── Real memory library, rendered server-side by the ai_assistant view ── */
+const MEMORIES = {{ memories_json|safe }};
+const HAS_MEMORIES = {{ has_memories|yesno:"true,false" }};
+
+const TYPE_COLOR = { note:'#3B82F6', voice_memo:'#EC4899', conversation:'#10B981', meeting:'#F97316', image:'#A855F7', document:'#14B8A6', activity:'#F59E0B' };
+const TYPE_ICON  = { note:'file-text', voice_memo:'microphone', conversation:'message-circle', meeting:'calendar-event', image:'photo', document:'file-text', activity:'activity' };
+
+function memById(id){ return MEMORIES.find(m => String(m.id) === String(id)); }
+
+/* All AI calls go through our own server, which runs the Claude API call
+   with a securely-held key (or falls back to a local heuristic if no key
+   is configured) — the browser never talks to api.anthropic.com directly. */
+async function callServer(url, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'X-CSRFToken': getCsrfToken(),
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams(body || {}),
+  });
+  if (!res.ok) throw new Error('request failed');
+  return res.json();
+}
+
+function setLoading(btnId, loading, label) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (loading) { btn.dataset.label = btn.innerHTML; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .8s linear infinite"></i>' + (label||'Working…'); btn.disabled = true; btn.style.opacity = '.7'; }
+  else { btn.innerHTML = btn.dataset.label; btn.disabled = false; btn.style.opacity = '1'; }
+}
+
+/* populate all memory <select> dropdowns from the user's real library */
+function populateSelects() {
+  ['summarizeSelect','tagSelect','catSelect','relatedSelect'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = HAS_MEMORIES
+      ? MEMORIES.map(m => `<option value="${m.id}">${m.title}</option>`).join('')
+      : '<option value="">No memories yet</option>';
+  });
+}
+
+function loadMemoryIntoField(selectId, contentId, titleId) {
+  if (!HAS_MEMORIES) return;
+  const id = document.getElementById(selectId).value;
+  const m = memById(id) || MEMORIES[0];
+  document.getElementById(contentId).value = m.content;
+  if (titleId) document.getElementById(titleId).value = m.title;
+}
+
+/* ── 1. AI CHAT (Step 15c — server-side RAG over real memories) ── */
+function getCsrfToken() {
+  const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+
+let chatConversationId = '';
+
+function appendChat(text, role) {
+  const wrap = document.getElementById('chatMsgs');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.innerHTML = role === 'user'
+    ? '<div class="chat-avatar user">You</div><div class="chat-bubble user"></div>'
+    : '<div class="chat-avatar ai"><i class="ti ti-sparkles"></i></div><div class="chat-bubble ai"></div>';
+  div.querySelector('.chat-bubble').textContent = text;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div.querySelector('.chat-bubble');
+}
+
+function appendChatCitations(bubble, citations) {
+  if (!citations || !citations.length) return;
+  const cites = document.createElement('div');
+  cites.className = 'mem-tags';
+  cites.style.marginTop = '8px';
+  cites.innerHTML = citations.map(c =>
+    `<span class="tag" style="background:rgba(255,255,255,.06);color:var(--ts)"><i class="ti ti-file-text" style="font-size:11px"></i> ${c.title}</span>`
+  ).join(' ');
+  bubble.parentElement.appendChild(cites);
+}
+
+async function sendChatMsg() {
+  const input = document.getElementById('chatInput');
+  const val = input.value.trim();
+  if (!val) return;
+  input.value = '';
+  appendChat(val, 'user');
+  const bubble = appendChat('Thinking…', 'ai');
+  try {
+    const res = await fetch('{% url "vault:ai_assistant_chat" %}', {
+      method: 'POST',
+      headers: {
+        'X-CSRFToken': getCsrfToken(),
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ message: val, conversation_id: chatConversationId }),
+    });
+    if (!res.ok) throw new Error('chat request failed');
+    const data = await res.json();
+    chatConversationId = data.conversation_id || chatConversationId;
+    bubble.textContent = data.answer || "I couldn't generate a response — please try again.";
+    appendChatCitations(bubble, data.citations);
+  } catch (e) { bubble.textContent = 'Something went wrong reaching the AI.'; }
+}
+function sendChatChip(el) {
+  document.getElementById('chatInput').value = el.textContent;
+  sendChatMsg();
+}
+
+/* ── 2. SUMMARIZE (real server endpoint, shared with the memory modal) ── */
+async function runSummarize() {
+  const title = document.getElementById('summarizeTitle').value;
+  const content = document.getElementById('summarizeContent').value;
+  if (!content.trim()) return;
+  setLoading('summarizeBtn', true, 'Summarizing…');
+  try {
+    const data = await callServer('{% url "vault:memory_ai_summary" %}', { title, content });
+    document.getElementById('summarizeOutput').textContent = data.summary || data.error || "Couldn't generate a summary.";
+    document.getElementById('summarizeResult').style.display = 'block';
+  } catch (e) {
+    document.getElementById('summarizeOutput').textContent = 'Something went wrong — please try again.';
+    document.getElementById('summarizeResult').style.display = 'block';
+  } finally { setLoading('summarizeBtn', false); }
+}
+
+/* ── 3. AUTO-TAGGING (real server endpoint, shared with the memory modal) ── */
+async function runAutoTag() {
+  const title = document.getElementById('tagTitle').value;
+  const content = document.getElementById('tagContent').value;
+  if (!content.trim()) return;
+  setLoading('tagBtn', true, 'Tagging…');
+  try {
+    const data = await callServer('{% url "vault:memory_ai_tags" %}', { title, content });
+    const tags = data.tags || [];
+    document.getElementById('tagOutput').innerHTML = tags.length
+      ? tags.map(t => `<span class="tag" style="background:rgba(124,58,237,.15);color:var(--a4)">#${t}</span>`).join(' ')
+      : `<span class="field-hint">${data.error || "Couldn't generate tags."}</span>`;
+    document.getElementById('tagResult').style.display = 'block';
+  } catch (e) {
+    document.getElementById('tagOutput').innerHTML = '<span class="field-hint">Something went wrong — please try again.</span>';
+    document.getElementById('tagResult').style.display = 'block';
+  } finally { setLoading('tagBtn', false); }
+}
+
+/* ── 4. SMART CATEGORIZATION ───────────────────────────── */
+async function runCategorize() {
+  const title = document.getElementById('catTitle').value;
+  const content = document.getElementById('catContent').value;
+  if (!content.trim()) return;
+  setLoading('catBtn', true, 'Categorizing…');
+  try {
+    const parsed = await callServer('{% url "vault:ai_categorize" %}', { title, content });
+    document.getElementById('catOutputCategory').textContent = parsed.category || '—';
+    document.getElementById('catOutputType').textContent = parsed.type || '—';
+    document.getElementById('catOutputConfidence').textContent = parsed.confidence ? Math.round(parsed.confidence*100) + '%' : '—';
+    document.getElementById('catOutputReason').textContent = parsed.reasoning || '—';
+    document.getElementById('catResult').style.display = 'flex';
+  } catch(e) { alert('Could not categorize this memory — please try again.'); }
+  finally { setLoading('catBtn', false); }
+}
+
+/* ── 5. RELATED MEMORIES ───────────────────────────────── */
+async function runRelated() {
+  const id = document.getElementById('relatedSelect').value;
+  if (!id) return;
+  setLoading('relatedBtn', true, 'Finding…');
+  const resultEl = document.getElementById('relatedResult');
+  resultEl.innerHTML = '';
+  try {
+    const data = await callServer('{% url "vault:ai_related" %}', { memory_id: id });
+    const results = data.results || [];
+    if (!results.length) { resultEl.innerHTML = '<div class="field-hint">No strongly related memories were found.</div>'; }
+    results.forEach(rm => resultEl.appendChild(renderMemoryCard(rm)));
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Could not determine related memories — please try again.</div>'; }
+  finally { setLoading('relatedBtn', false); }
+}
+
+function renderMemoryCard(m) {
+  const div = document.createElement('div');
+  div.className = 'memory-card';
+  div.innerHTML = `<div class="mem-icon" style="background:${TYPE_COLOR[m.type]}22;color:${TYPE_COLOR[m.type]}"><i class="ti ti-${TYPE_ICON[m.type]}"></i></div>
+    <div class="mem-body"><div class="mem-top"><span class="mem-title">${m.title}</span></div>
+    <div class="mem-snippet">${m.summary}</div>
+    <div class="mem-tags">${m.tags.map(t=>`<span class="tag" style="background:rgba(255,255,255,.06);color:var(--ts)">#${t}</span>`).join('')}</div></div>`;
+  return div;
+}
+
+/* ── 6. DUPLICATE DETECTION ────────────────────────────── */
+async function runDuplicates() {
+  setLoading('dupBtn', true, 'Scanning…');
+  const resultEl = document.getElementById('dupResult');
+  resultEl.innerHTML = '';
+  try {
+    const data = await callServer('{% url "vault:ai_duplicates" %}');
+    const pairs = data.pairs || [];
+    if (!pairs.length) {
+      resultEl.innerHTML = '<div class="field-hint"><i class="ti ti-check" style="color:var(--ok)"></i> No likely duplicates found in your memory library.</div>';
+    } else {
+      pairs.forEach(p => {
+        const a = p.a, b = p.b;
+        const row = document.createElement('div');
+        row.className = 'export-row';
+        row.innerHTML = `<div class="export-meta"><div class="export-icon" style="background:rgba(245,158,11,.15);color:var(--warn)"><i class="ti ti-copy"></i></div>
+          <div><div class="export-title">${a.title} ↔ ${b.title}</div><div class="export-desc">${p.reason} · ${Math.round((p.similarity||0)*100)}% similar</div></div></div>
+          <button class="btn btn-secondary btn-sm"><i class="ti ti-eye"></i>Review</button>`;
+        resultEl.appendChild(row);
+      });
+    }
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Could not complete the duplicate scan — please try again.</div>'; }
+  finally { setLoading('dupBtn', false); }
+}
+
+/* ── 7. NATURAL LANGUAGE SEARCH ────────────────────────── */
+async function runNlSearch() {
+  const q = document.getElementById('nlsearchInput').value.trim();
+  if (!q) return;
+  setLoading('nlsearchBtn', true, 'Searching…');
+  const resultEl = document.getElementById('nlsearchResult');
+  resultEl.innerHTML = '';
+  try {
+    const data = await callServer('{% url "vault:ai_nlsearch" %}', { query: q });
+    const results = data.results || [];
+    if (!results.length) {
+      resultEl.innerHTML = '<div class="field-hint">No matching memories found for that query.</div>';
+    } else {
+      results.forEach(r => {
+        const card = renderMemoryCard(r.memory);
+        const hint = document.createElement('div');
+        hint.className = 'field-hint';
+        hint.style.marginTop = '-6px';
+        hint.innerHTML = `<i class="ti ti-sparkles" style="color:var(--a4)"></i> ${r.reason}`;
+        resultEl.appendChild(card);
+        resultEl.appendChild(hint);
+      });
+    }
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Search failed — please try again.</div>'; }
+  finally { setLoading('nlsearchBtn', false); }
+}
+
+/* ── 8. PRODUCTIVITY INSIGHTS (real usage stats, computed server-side) ── */
+async function runInsights() {
+  setLoading('insightsBtn', true, 'Analyzing…');
+  const resultEl = document.getElementById('insightsResult');
+  resultEl.innerHTML = '';
+  try {
+    const data = await callServer('{% url "vault:ai_insights" %}');
+    (data.insights||[]).forEach(ins => {
+      const card = document.createElement('div');
+      card.className = 'ai-insight';
+      card.innerHTML = `<div class="ai-insight-header"><div class="ai-spark"><i class="ti ti-bulb"></i></div><div><div class="ai-insight-title">${ins.title}</div></div></div><div class="ai-insight-text">${ins.detail}</div>`;
+      resultEl.appendChild(card);
+    });
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Could not generate insights — please try again.</div>'; }
+  finally { setLoading('insightsBtn', false); }
+}
+
+/* ── 9. DAILY RECAP (real memories captured today) ─────────── */
+async function runRecap() {
+  setLoading('recapBtn', true, 'Writing recap…');
+  try {
+    const data = await callServer('{% url "vault:ai_recap" %}');
+    document.getElementById('recapOutput').textContent = data.recap || "Couldn't generate a recap.";
+    document.getElementById('recapDate').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+    document.getElementById('recapResult').style.display = 'block';
+  } catch(e) {
+    document.getElementById('recapOutput').textContent = 'Something went wrong — please try again.';
+    document.getElementById('recapResult').style.display = 'block';
+  } finally { setLoading('recapBtn', false); }
+}
+
+/* ── 10. WEEKLY REPORT (real memories from the last 7 days) ───── */
+async function runWeekly() {
+  setLoading('weeklyBtn', true, 'Building report…');
+  try {
+    const data = await callServer('{% url "vault:ai_weekly" %}');
+    document.getElementById('weeklyOutput').textContent = data.report || "Couldn't generate a report.";
+    document.getElementById('weeklyResult').style.display = 'block';
+  } catch(e) {
+    document.getElementById('weeklyOutput').textContent = 'Something went wrong — please try again.';
+    document.getElementById('weeklyResult').style.display = 'block';
+  } finally { setLoading('weeklyBtn', false); }
+}
+
+/* ── 11. AI RECOMMENDATIONS (based on the real library) ───────── */
+async function runRecommend() {
+  setLoading('recommendBtn', true, 'Thinking…');
+  const resultEl = document.getElementById('recommendResult');
+  resultEl.innerHTML = '';
+  try {
+    const data = await callServer('{% url "vault:ai_recommend" %}');
+    (data.recs||[]).forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'export-row';
+      row.innerHTML = `<div class="export-meta"><div class="export-icon"><i class="ti ti-${r.icon||'sparkles'}"></i></div><div><div class="export-title">${r.title}</div><div class="export-desc">${r.detail}</div></div></div><button class="btn btn-secondary btn-sm"><i class="ti ti-arrow-right"></i>Apply</button>`;
+      resultEl.appendChild(row);
+    });
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Could not generate recommendations — please try again.</div>'; }
+  finally { setLoading('recommendBtn', false); }
+}
+
+populateSelects();
+loadMemoryIntoField('summarizeSelect','summarizeContent','summarizeTitle');
+loadMemoryIntoField('tagSelect','tagContent','tagTitle');
+loadMemoryIntoField('catSelect','catContent','catTitle');
+
+const styleSpin2 = document.createElement('style');
+styleSpin2.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';
+document.head.appendChild(styleSpin2);
+
+</script>
+{% endblock %}

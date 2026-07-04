@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>MemoryVault AI — AI Assistant</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B0C15; --shell:#0E1020; --surface:#12132A; --raised:#181A33; --active:#1C1740;
+  --bs:#21233F; --bd:#2A2D4D; --tp:#F8FAFC; --ts:#A1A8C3; --tt:#6B7290; --td:#454966;
+  --a4:#9F75F0; --a5:#8B5CF6; --a6:#7C3AED; --a7:#6320D6;
+  --ok:#22C55E; --err:#EF4444; --warn:#F59E0B;
+  --blue:#3B82F6; --pink:#EC4899; --green:#10B981; --orange:#F97316; --purple:#A855F7; --teal:#14B8A6; --amber:#F59E0B;
+  --gold:#FBBF24;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);font-size:14px;line-height:1.5;overflow:hidden}
+.app{display:flex;height:100vh;width:100vw}
+/* ── SIDEBAR (shared) ───────────────────────────── */
+.sidebar{width:240px;min-width:240px;background:var(--shell);border-right:1px solid var(--bs);display:flex;flex-direction:column;transition:width .3s cubic-bezier(.16,1,.3,1),min-width .3s cubic-bezier(.16,1,.3,1);overflow:hidden;position:relative;z-index:10;flex-shrink:0}
+.sidebar.collapsed{width:64px;min-width:64px}
+.sidebar-logo{padding:16px 14px;display:flex;align-items:center;gap:10px;height:64px;border-bottom:1px solid var(--bs);flex-shrink:0}
+.logo-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#722CE4,#5B21B6);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-text{overflow:hidden;white-space:nowrap;transition:opacity .25s,width .25s}
+.logo-text strong{display:block;font-size:14px;font-weight:700;color:var(--tp)}
+.logo-text span{font-size:10px;font-weight:500;color:var(--tt);letter-spacing:.06em;text-transform:uppercase}
+.sidebar-search{margin:12px 10px 4px;position:relative;flex-shrink:0}
+.sidebar-search input{width:100%;background:var(--surface);border:1px solid var(--bd);border-radius:8px;padding:7px 36px 7px 32px;font-size:13px;color:var(--ts);font-family:inherit;outline:none;transition:border-color .15s,color .15s}
+.sidebar-search input:focus{border-color:var(--a6);color:var(--tp)}
+.sidebar-search input::placeholder{color:var(--tt)}
+.sidebar-search .s-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--tt);font-size:15px;pointer-events:none}
+.sidebar-search .kbd{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--tt);background:var(--raised);border:1px solid var(--bs);border-radius:4px;padding:1px 4px;transition:opacity .25s}
+.nav-section{padding:14px 10px 4px;flex-shrink:0}
+.nav-label{font-size:10px;font-weight:600;color:var(--tt);letter-spacing:.08em;text-transform:uppercase;padding:0 4px 6px;white-space:nowrap;overflow:hidden;transition:opacity .25s}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0 8px;height:38px;border-radius:8px;cursor:pointer;color:var(--ts);font-size:13px;font-weight:500;transition:background .15s,color .15s;white-space:nowrap;position:relative;overflow:hidden;user-select:none;text-decoration:none}
+.nav-item:hover{background:var(--surface);color:var(--tp)}
+.nav-item.active{background:var(--active);color:var(--a4)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--a6);border-radius:0 2px 2px 0}
+.nav-item .nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.nav-text{overflow:hidden;white-space:nowrap;transition:opacity .2s,max-width .3s;max-width:200px}
+.sidebar.collapsed .nav-text,.sidebar.collapsed .logo-text,.sidebar.collapsed .sidebar-search .kbd,.sidebar.collapsed .nav-label,.sidebar.collapsed .ai-desc{opacity:0;max-width:0;overflow:hidden;pointer-events:none}
+.sidebar.collapsed .sidebar-search input{padding-left:10px;color:transparent}
+.sidebar.collapsed .sidebar-search input::placeholder{color:transparent}
+.sidebar.collapsed .nav-item{justify-content:center;padding:0}
+.sidebar.collapsed .nav-item.active::before{display:none}
+.sidebar.collapsed .ai-card{padding:12px 0;justify-content:center}
+.sidebar-footer{margin-top:auto;padding:10px;border-top:1px solid var(--bs);flex-shrink:0}
+.ai-card{background:var(--raised);border:1px solid var(--bs);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:8px;transition:padding .3s}
+.ai-dot-wrap{position:relative;width:8px;height:8px;flex-shrink:0}
+.ai-dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.ai-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;background:rgba(34,197,94,.25);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.8);opacity:0}}
+.ai-text strong{font-size:12px;font-weight:600;color:var(--tp);white-space:nowrap}
+.ai-text small{font-size:11px;color:var(--tt);display:block;line-height:1.3;white-space:nowrap;overflow:hidden;transition:opacity .2s,max-height .3s;max-height:30px}
+.collapse-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:34px;border-radius:7px;cursor:pointer;color:var(--tt);font-size:13px;border:none;background:transparent;font-family:inherit;transition:background .15s,color .15s}
+.collapse-btn:hover{background:var(--surface);color:var(--tp)}
+.collapse-icon{transition:transform .3s cubic-bezier(.16,1,.3,1);font-size:18px}
+.sidebar.collapsed .collapse-icon{transform:rotate(180deg)}
+/* ── MAIN/TOPBAR (shared) ───────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:64px;background:var(--shell);border-bottom:1px solid var(--bs);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:5}
+.topbar-title{font-size:17px;font-weight:700;color:var(--tp);flex:none}
+.topbar-search{flex:1;max-width:260px;margin-left:auto;position:relative}
+.topbar-search input{width:100%;background:var(--surface);border:1px solid var(--bd);border-radius:20px;padding:7px 36px 7px 14px;font-size:13px;color:var(--ts);font-family:inherit;outline:none;transition:border-color .15s,color .15s}
+.topbar-search input:focus{border-color:var(--a6);color:var(--tp)}
+.topbar-search input::placeholder{color:var(--tt)}
+.topbar-search .kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--tt);background:var(--raised);border:1px solid var(--bs);border-radius:4px;padding:1px 4px}
+.capture-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,#722CE4,#5B21B6);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;white-space:nowrap}
+.capture-btn:hover{opacity:.9}
+.capture-btn:active{transform:scale(.97)}
+.icon-btn{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--ts);font-size:18px;transition:background .15s,color .15s;position:relative;flex-shrink:0}
+.icon-btn:hover{background:var(--surface);color:var(--tp)}
+.notif-dot{position:absolute;top:7px;right:7px;width:6px;height:6px;background:var(--err);border-radius:50%;border:1.5px solid var(--shell)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--a6);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;border:2px solid var(--bs);transition:border-color .15s;user-select:none}
+.avatar:hover{border-color:var(--a5)}
+.content{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.btn{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px;border-radius:10px;font-size:13.5px;font-weight:600;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;transition:filter .15s,transform .1s,box-shadow .15s}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:linear-gradient(135deg,#722CE4,#5B21B6);color:#fff}
+.btn-primary:hover{filter:brightness(1.08);box-shadow:0 0 24px rgba(124,58,237,.35)}
+.btn-secondary{background:var(--raised);color:var(--tp);border:1px solid var(--bd)}
+.btn-secondary:hover{border-color:var(--a6)}
+.btn-destructive{background:var(--err);color:#fff}
+.btn-destructive:hover{filter:brightness(1.1)}
+.btn-outline-destructive{background:transparent;color:var(--err);border:1px solid rgba(239,68,68,.4)}
+.btn-outline-destructive:hover{background:rgba(239,68,68,.1)}
+.btn-ghost{background:transparent;color:var(--ts);border:1px solid transparent}
+.btn-ghost:hover{background:var(--surface);color:var(--tp)}
+.btn-sm{height:32px;padding:0 12px;font-size:12.5px}
+/* ── Page header ─────────────────────────────────── */
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.page-header h1{font-size:24px;font-weight:700;color:var(--tp);margin-bottom:4px}
+.page-header p{font-size:13.5px;color:var(--ts)}
+/* ── Segmented tab control (page sub-nav) ─────────── */
+.seg-tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--bs);border-radius:11px;padding:4px;width:fit-content;flex-wrap:wrap}
+.seg-tab{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--ts);cursor:pointer;background:transparent;border:none;font-family:inherit;transition:background .15s,color .15s;white-space:nowrap}
+.seg-tab:hover{color:var(--tp)}
+.seg-tab.active{background:var(--active);color:var(--a4)}
+.tab-panel{display:none;animation:fadeUp .35s ease both}
+.tab-panel.active{display:flex;flex-direction:column;gap:20px}
+/* ── Stat cards (shared with dashboard) ───────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat-card{background:var(--surface);border:1px solid var(--bs);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s;cursor:default;animation:fadeUp .4s ease both}
+.stat-card:hover{border-color:var(--bd);transform:translateY(-1px)}
+.stat-header{display:flex;align-items:center;justify-content:space-between}
+.stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.stat-value{font-size:28px;font-weight:700;color:var(--tp);font-variant-numeric:tabular-nums}
+.stat-label{font-size:12px;color:var(--tt)}
+/* ── Section card (used in Settings) ──────────────── */
+.section-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:4px;animation:fadeUp .4s ease both}
+.section-card.danger{border-color:rgba(239,68,68,.35)}
+.sc-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sc-icon{width:36px;height:36px;border-radius:9px;background:var(--active);color:var(--a4);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.sc-icon.danger{background:rgba(239,68,68,.12);color:var(--err)}
+.sc-title{font-size:15px;font-weight:600;color:var(--tp)}
+.sc-sub{font-size:12px;color:var(--tt);margin-top:1px}
+/* form fields */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:12.5px;font-weight:500;color:var(--ts)}
+.field input,.field textarea{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit;outline:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus{border-color:var(--a6);box-shadow:0 0 0 3px rgba(124,58,237,.2)}
+.field input:disabled{color:var(--tt);cursor:not-allowed}
+.field-hint{font-size:11px;color:var(--td)}
+/* toggle row */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--bs)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{font-size:13.5px;font-weight:500;color:var(--tp)}
+.toggle-desc{font-size:12px;color:var(--tt);margin-top:2px}
+.switch{position:relative;width:44px;height:24px;flex-shrink:0;cursor:pointer}
+.switch input{opacity:0;width:0;height:0}
+.switch-track{position:absolute;inset:0;background:var(--raised);border:1px solid var(--bd);border-radius:999px;transition:background .2s,border-color .2s}
+.switch-thumb{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--tt);transition:transform .2s ease}
+.switch input:checked + .switch-track{background:var(--a6);border-color:var(--a6)}
+.switch input:checked + .switch-track + .switch-thumb{transform:translateX(20px);background:#fff}
+/* radio-pill group */
+.pill-group{display:flex;gap:8px;flex-wrap:wrap}
+.pill-opt{padding:8px 14px;border-radius:999px;font-size:12.5px;font-weight:500;border:1px solid var(--bd);background:transparent;color:var(--ts);cursor:pointer;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+.pill-opt.on{background:var(--active);color:var(--a4);border-color:var(--a6)}
+/* identity / profile */
+.identity-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;animation:fadeUp .4s ease both}
+.identity-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#722CE4,#5B21B6);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;flex-shrink:0;position:relative}
+.identity-avatar .edit-pencil{position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:50%;background:var(--raised);border:2px solid var(--shell);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ts);cursor:pointer}
+.identity-meta{flex:1;min-width:200px}
+.identity-name{font-size:18px;font-weight:700;color:var(--tp);display:flex;align-items:center;gap:8px}
+.role-badge{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--active);color:var(--a4);text-transform:uppercase;letter-spacing:.04em}
+.identity-email{font-size:13px;color:var(--ts);margin-top:3px}
+.identity-since{font-size:12px;color:var(--tt);margin-top:6px;display:flex;align-items:center;gap:6px}
+/* account detail rows */
+.detail-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:22px;animation:fadeUp .4s ease both}
+.detail-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--bs)}
+.detail-row:last-child{border-bottom:none}
+.detail-key{font-size:12.5px;color:var(--tt)}
+.detail-val{font-size:13.5px;color:var(--tp);font-weight:500}
+.detail-val.mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ts)}
+/* achievement card */
+.ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.ach-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;transition:border-color .15s,transform .15s;animation:fadeUp .4s ease both}
+.ach-card:hover{transform:translateY(-2px);border-color:var(--bd)}
+.ach-card.locked{opacity:.45}
+.ach-icon{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff}
+.ach-title{font-size:13.5px;font-weight:600;color:var(--tp)}
+.ach-desc{font-size:11.5px;color:var(--tt);line-height:1.4}
+.ach-progress{width:100%;height:5px;border-radius:999px;background:var(--bs);margin-top:4px;overflow:hidden}
+.ach-progress-fill{height:100%;background:var(--a6);border-radius:999px}
+/* timeline (shared with dashboard) */
+.timeline-card{background:var(--surface);border:1px solid var(--bs);border-radius:12px;padding:18px;animation:fadeUp .4s ease both}
+.timeline-list{display:flex;flex-direction:column}
+.tl-item{display:flex;gap:12px;padding:10px 0;position:relative}
+.tl-item:not(:last-child)::after{content:'';position:absolute;left:7px;top:26px;bottom:-4px;width:1px;background:var(--bs)}
+.tl-dot{width:15px;height:15px;border-radius:50%;flex-shrink:0;margin-top:2px;border:2px solid var(--surface);position:relative;z-index:1}
+.tl-body{flex:1;min-width:0}
+.tl-label{font-size:12.5px;font-weight:500;color:var(--tp)}
+.tl-sub{font-size:11.5px;color:var(--tt);margin-top:1px}
+.tl-time{font-size:10.5px;color:var(--td);margin-top:2px}
+/* export card */
+.export-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;background:var(--bg);border:1px solid var(--bs);border-radius:12px;margin-bottom:10px}
+.export-row:last-child{margin-bottom:0}
+.export-meta{display:flex;align-items:center;gap:12px}
+.export-icon{width:38px;height:38px;border-radius:10px;background:var(--active);color:var(--a4);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.export-title{font-size:13.5px;font-weight:600;color:var(--tp)}
+.export-desc{font-size:11.5px;color:var(--tt)}
+/* accordion (FAQ) */
+.accordion{display:flex;flex-direction:column;gap:8px}
+.acc-item{background:var(--surface);border:1px solid var(--bs);border-radius:12px;overflow:hidden;transition:border-color .15s}
+.acc-item.open{border-color:var(--bd)}
+.acc-q{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--tp);user-select:none}
+.acc-q i{transition:transform .2s;color:var(--tt);font-size:16px;flex-shrink:0}
+.acc-item.open .acc-q i{transform:rotate(180deg);color:var(--a4)}
+.acc-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.acc-a-inner{padding:0 18px 16px;font-size:13px;color:var(--ts);line-height:1.6}
+/* help hero */
+.help-hero{background:var(--surface);border:1px solid var(--bs);border-radius:16px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;animation:fadeUp .4s ease both}
+.help-hero-icon{width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#722CE4,#5B21B6);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;box-shadow:0 0 32px rgba(124,58,237,.35)}
+.help-hero h1{font-size:26px;font-weight:700;color:var(--tp)}
+.help-hero p{font-size:13.5px;color:var(--ts);max-width:420px}
+.help-search{width:100%;max-width:460px;position:relative;margin-top:6px}
+.help-search input{width:100%;height:46px;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:0 18px 0 44px;font-size:13.5px;color:var(--tp);font-family:inherit;outline:none;transition:border-color .15s}
+.help-search input:focus{border-color:var(--a6);box-shadow:0 0 0 3px rgba(124,58,237,.2)}
+.help-search i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--tt);font-size:17px}
+/* guide grid */
+.guide-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.guide-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color .15s,transform .15s;animation:fadeUp .4s ease both}
+.guide-card:hover{border-color:var(--bd);transform:translateY(-2px)}
+.guide-icon{width:40px;height:40px;border-radius:10px;background:var(--active);color:var(--a4);display:flex;align-items:center;justify-content:center;font-size:19px}
+.guide-title{font-size:14px;font-weight:600;color:var(--tp)}
+.guide-desc{font-size:12px;color:var(--tt);line-height:1.5;flex:1}
+.guide-arrow{color:var(--tt);font-size:14px;transition:transform .15s}
+.guide-card:hover .guide-arrow{transform:translateX(3px);color:var(--a4)}
+/* contact card */
+.contact-card{background:var(--surface);border:1px solid rgba(124,58,237,.35);border-radius:14px;padding:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;animation:fadeUp .4s ease both}
+.contact-left{display:flex;align-items:center;gap:14px}
+/* doc list / tutorial list */
+.doc-list{display:flex;flex-direction:column;gap:8px}
+.doc-row{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--bs);border-radius:11px;cursor:pointer;transition:background .15s,border-color .15s}
+.doc-row:hover{background:var(--raised);border-color:var(--bd)}
+.doc-row-icon{width:34px;height:34px;border-radius:9px;background:var(--active);color:var(--a4);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.doc-row-title{font-size:13.5px;font-weight:600;color:var(--tp)}
+.doc-row-sub{font-size:11.5px;color:var(--tt);margin-top:1px}
+.doc-row-meta{margin-left:auto;font-size:11px;color:var(--tt);display:flex;align-items:center;gap:8px;flex-shrink:0}
+/* chat widget (AI assistant help) */
+.chat-shell{background:var(--surface);border:1px solid var(--bs);border-radius:16px;display:flex;flex-direction:column;height:440px;animation:fadeUp .4s ease both}
+.chat-msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.chat-msg{display:flex;gap:10px;max-width:78%}
+.chat-msg.user{align-self:flex-end;flex-direction:row-reverse}
+.chat-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:#fff}
+.chat-avatar.ai{background:linear-gradient(135deg,#722CE4,#5B21B6)}
+.chat-avatar.user{background:var(--a6)}
+.chat-bubble{padding:11px 14px;border-radius:14px;font-size:13px;line-height:1.5}
+.chat-bubble.ai{background:var(--raised);color:var(--ts);border:1px solid var(--bs)}
+.chat-bubble.user{background:var(--a6);color:#fff}
+.chat-composer{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--bs)}
+.chat-composer input{flex:1;height:44px;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:0 18px;font-size:13.5px;color:var(--tp);font-family:inherit;outline:none}
+.chat-composer input:focus{border-color:var(--a6)}
+.chat-send{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#722CE4,#5B21B6);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:17px}
+.chat-suggest{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 14px}
+.chat-chip{padding:7px 13px;border-radius:999px;background:var(--raised);border:1px solid var(--bd);color:var(--ts);font-size:12px;cursor:pointer;transition:border-color .15s,color .15s}
+.chat-chip:hover{border-color:var(--a6);color:var(--a4)}
+/* responsive */
+@media (max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.ach-grid{grid-template-columns:repeat(2,1fr)}.guide-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:860px){.sidebar{position:absolute;height:100%;left:0}.sidebar:not(.collapsed){box-shadow:4px 0 24px rgba(0,0,0,.5)}}
+@media (max-width:560px){.stats-grid{grid-template-columns:1fr 1fr}.ach-grid{grid-template-columns:1fr}.guide-grid{grid-template-columns:1fr}.content{padding:16px}.identity-card{flex-direction:column;text-align:center}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+
+<style>select{outline:none}select:focus{border-color:var(--a6)!important}</style>
+<link rel="stylesheet" href="shared/polish.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div class="app">
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+    <div class="sidebar-logo">
+      <div class="logo-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 2C5.13 2 2 5.13 2 9s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm0 3c.83 0 1.5.67 1.5 1.5S9.83 8 9 8s-1.5-.67-1.5-1.5S8.17 5 9 5zm0 8c-1.75 0-3.29-.9-4.2-2.26.02-1.39 2.8-2.16 4.2-2.16 1.4 0 4.18.77 4.2 2.16C12.29 12.1 10.75 13 9 13z" fill="white"/></svg>
+      </div>
+      <div class="logo-text"><strong>MemoryVault</strong><span>AI Second Brain</span></div>
+    </div>
+    <div class="sidebar-search">
+      <i class="ti ti-search s-icon" aria-hidden="true"></i>
+      <input type="search" placeholder="Search memories…" aria-label="Search memories">
+      <span class="kbd" aria-hidden="true">⌘K</span>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="memoryvault_dashboard.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-layout-dashboard" aria-hidden="true"></i></span>
+        <span class="nav-text">Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-timeline" aria-hidden="true"></i></span>
+        <span class="nav-text">Timeline</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-calendar" aria-hidden="true"></i></span>
+        <span class="nav-text">Calendar</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-folders" aria-hidden="true"></i></span>
+        <span class="nav-text">Collections</span>
+      </a>
+      <a href="MemoryVault_Categories_Search_Archive.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-tag" aria-hidden="true"></i></span>
+        <span class="nav-text">Categories</span>
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Intelligence</div>
+      <a href="ai-assistant.html" class="nav-item active" role="link" tabindex="0" aria-current="page">
+        <span class="nav-icon"><i class="ti ti-sparkles" aria-hidden="true"></i></span>
+        <span class="nav-text">AI Assistant</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-search" aria-hidden="true"></i></span>
+        <span class="nav-text">Search</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></span>
+        <span class="nav-text">Analytics</span>
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Account</div>
+      <a href="profile.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-user" aria-hidden="true"></i></span>
+        <span class="nav-text">Profile</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-bell" aria-hidden="true"></i></span>
+        <span class="nav-text">Notifications</span>
+      </a>
+      <a href="settings.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-settings" aria-hidden="true"></i></span>
+        <span class="nav-text">Settings</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-trash" aria-hidden="true"></i></span>
+        <span class="nav-text">Trash</span>
+      </a>
+      <a href="help-center.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-help" aria-hidden="true"></i></span>
+        <span class="nav-text">Help Center</span>
+      </a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="ai-card" role="status" aria-live="polite">
+        <div class="ai-dot-wrap" aria-hidden="true"><div class="ai-dot"></div></div>
+        <div class="ai-text"><strong>AI Active</strong><small class="ai-desc">Processing memories in real-time</small></div>
+      </div>
+      <button class="collapse-btn" onclick="toggleSidebar()" aria-expanded="true" aria-label="Collapse sidebar" id="collapse-btn">
+        <i class="ti ti-chevrons-left collapse-icon" id="collapse-icon" aria-hidden="true"></i>
+        <span class="nav-text" style="font-size:12px;color:var(--tt)">Collapse</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">AI Assistant</div>
+      <div class="topbar-search">
+        <input type="search" placeholder="Search anything…" aria-label="Global search">
+        <span class="kbd" aria-hidden="true">⌘K</span>
+      </div>
+      <button class="capture-btn ripple-surface" aria-label="Capture new memory"><i class="ti ti-plus" aria-hidden="true"></i>Capture</button>
+      <button class="icon-btn" aria-label="Notifications (3 unread)"><i class="ti ti-bell" aria-hidden="true"></i><span class="notif-dot" aria-hidden="true"></span></button>
+      <div class="avatar" role="button" tabindex="0" aria-label="User menu — Maya M." title="Maya M.">MM</div>
+    </header>
+
+    <main class="content" id="main-content">
+
+      <div class="page-header">
+        <div><h1>AI Assistant</h1><p>Every AI capability in MemoryVault, in one place — all calls run live against Claude</p></div>
+      </div>
+
+      <div class="seg-tabs" role="tablist" aria-label="AI feature sections">
+        <button class="seg-tab active" data-group="ai" onclick="showTab('ai','chat',this)"><i class="ti ti-message-circle"></i>AI Chat</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','summarize',this)"><i class="ti ti-align-left"></i>Summarize</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','tagging',this)"><i class="ti ti-tags"></i>Auto-Tagging</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','categorize',this)"><i class="ti ti-category"></i>Categorization</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','related',this)"><i class="ti ti-git-branch"></i>Related</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','duplicates',this)"><i class="ti ti-copy"></i>Duplicates</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','nlsearch',this)"><i class="ti ti-search"></i>NL Search</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','insights',this)"><i class="ti ti-bulb"></i>Insights</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','recap',this)"><i class="ti ti-sun"></i>Daily Recap</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','weekly',this)"><i class="ti ti-calendar-stats"></i>Weekly Report</button>
+        <button class="seg-tab" data-group="ai" onclick="showTab('ai','recommend',this)"><i class="ti ti-sparkles"></i>Recommendations</button>
+      </div>
+
+      <!-- 1. AI CHAT -->
+      <div class="tab-panel active" data-group="ai" data-name="chat">
+        <div class="chat-shell" style="height:520px">
+          <div class="chat-msgs" id="chatMsgs">
+            <div class="chat-msg ai"><div class="chat-avatar ai"><i class="ti ti-sparkles"></i></div><div class="chat-bubble ai">Hi Maya! I'm grounded in your 8 most recent memories — ask me anything about them, or about your habits and patterns.</div></div>
+          </div>
+          <div class="chat-suggest">
+            <div class="chat-chip" onclick="sendChatChip(this)">What have I been thinking about lately?</div>
+            <div class="chat-chip" onclick="sendChatChip(this)">Summarize my work-related memories</div>
+            <div class="chat-chip" onclick="sendChatChip(this)">What ideas am I most excited about?</div>
+          </div>
+          <div class="chat-composer">
+            <input type="text" id="chatInput" placeholder="Ask your memory anything…" onkeydown="if(event.key==='Enter')sendChatMsg()">
+            <button class="chat-send" onclick="sendChatMsg()"><i class="ti ti-send"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. SUMMARIZE -->
+      <div class="tab-panel" data-group="ai" data-name="summarize">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-align-left"></i></div><div><div class="sc-title">Memory Summarization</div><div class="sc-sub">Pick a memory (or paste your own text) and generate a concise AI summary</div></div></div>
+          <div class="field"><label>Select a memory</label>
+            <select id="summarizeSelect" onchange="loadMemoryIntoField('summarizeSelect','summarizeContent','summarizeTitle')" style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit"></select>
+          </div>
+          <input type="hidden" id="summarizeTitle">
+          <div class="field"><label>Content</label><textarea id="summarizeContent" rows="5"></textarea></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runSummarize()" id="summarizeBtn"><i class="ti ti-sparkles"></i>Generate Summary</button>
+          <div id="summarizeResult" class="ai-insight" style="margin-top:14px;display:none">
+            <div class="ai-insight-header"><div class="ai-spark"><i class="ti ti-align-left"></i></div><div><div class="ai-insight-title">AI Summary</div><div class="ai-insight-sub">1-2 sentence summary</div></div></div>
+            <div class="ai-insight-text" id="summarizeOutput"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. AUTO-TAGGING -->
+      <div class="tab-panel" data-group="ai" data-name="tagging">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-tags"></i></div><div><div class="sc-title">Auto-Tagging</div><div class="sc-sub">Generate relevant tags automatically from a memory's content</div></div></div>
+          <div class="field"><label>Select a memory</label>
+            <select id="tagSelect" onchange="loadMemoryIntoField('tagSelect','tagContent','tagTitle')" style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit"></select>
+          </div>
+          <input type="hidden" id="tagTitle">
+          <div class="field"><label>Content</label><textarea id="tagContent" rows="5"></textarea></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runAutoTag()" id="tagBtn"><i class="ti ti-sparkles"></i>Generate Tags</button>
+          <div id="tagResult" style="margin-top:14px;display:none">
+            <div class="mem-tags" id="tagOutput"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. SMART CATEGORIZATION -->
+      <div class="tab-panel" data-group="ai" data-name="categorize">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-category"></i></div><div><div class="sc-title">Smart Categorization</div><div class="sc-sub">Classify a memory into the best-fit category and type automatically</div></div></div>
+          <div class="field"><label>Select a memory</label>
+            <select id="catSelect" onchange="loadMemoryIntoField('catSelect','catContent','catTitle')" style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit"></select>
+          </div>
+          <input type="hidden" id="catTitle">
+          <div class="field"><label>Content</label><textarea id="catContent" rows="5"></textarea></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runCategorize()" id="catBtn"><i class="ti ti-sparkles"></i>Categorize</button>
+          <div id="catResult" style="margin-top:14px;display:none;gap:10px" class="">
+            <div class="detail-card">
+              <div class="detail-row"><span class="detail-key">Suggested Category</span><span class="detail-val" id="catOutputCategory">—</span></div>
+              <div class="detail-row"><span class="detail-key">Suggested Type</span><span class="detail-val" id="catOutputType">—</span></div>
+              <div class="detail-row"><span class="detail-key">Confidence</span><span class="detail-val" id="catOutputConfidence">—</span></div>
+              <div class="detail-row"><span class="detail-key">Reasoning</span><span class="detail-val" id="catOutputReason" style="text-align:right;max-width:60%;font-weight:400;color:var(--ts)">—</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. RELATED MEMORIES -->
+      <div class="tab-panel" data-group="ai" data-name="related">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-git-branch"></i></div><div><div class="sc-title">Related Memories</div><div class="sc-sub">Find which of your other memories connect to a chosen one</div></div></div>
+          <div class="field"><label>Select a memory</label>
+            <select id="relatedSelect" style="background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit"></select>
+          </div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runRelated()" id="relatedBtn"><i class="ti ti-sparkles"></i>Find Related Memories</button>
+          <div class="memory-list" id="relatedResult" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- 6. DUPLICATE DETECTION -->
+      <div class="tab-panel" data-group="ai" data-name="duplicates">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-copy"></i></div><div><div class="sc-title">Duplicate Detection</div><div class="sc-sub">Scan your entire memory library for near-duplicate or overlapping entries</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runDuplicates()" id="dupBtn"><i class="ti ti-sparkles"></i>Scan for Duplicates</button>
+          <div id="dupResult" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+
+      <!-- 7. NATURAL LANGUAGE SEARCH -->
+      <div class="tab-panel" data-group="ai" data-name="nlsearch">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-search"></i></div><div><div class="sc-title">Natural Language Search</div><div class="sc-sub">Describe what you're looking for in plain English — no exact keywords needed</div></div></div>
+          <div class="field"><label>What are you looking for?</label><input type="text" id="nlsearchInput" placeholder="e.g. that thing Sarah told me about working early in the morning" onkeydown="if(event.key==='Enter')runNlSearch()"></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runNlSearch()" id="nlsearchBtn"><i class="ti ti-sparkles"></i>Search</button>
+          <div class="memory-list" id="nlsearchResult" style="margin-top:14px"></div>
+        </div>
+      </div>
+
+      <!-- 8. PRODUCTIVITY INSIGHTS -->
+      <div class="tab-panel" data-group="ai" data-name="insights">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-bulb"></i></div><div><div class="sc-title">Productivity Insights</div><div class="sc-sub">AI analysis of your capture habits and patterns over time</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runInsights()" id="insightsBtn"><i class="ti ti-sparkles"></i>Generate Insights</button>
+          <div id="insightsResult" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+
+      <!-- 9. DAILY RECAP -->
+      <div class="tab-panel" data-group="ai" data-name="recap">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-sun"></i></div><div><div class="sc-title">Daily Recap</div><div class="sc-sub">A short AI-written recap of today's captured memories</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runRecap()" id="recapBtn"><i class="ti ti-sparkles"></i>Generate Today's Recap</button>
+          <div id="recapResult" class="ai-insight" style="margin-top:14px;display:none">
+            <div class="ai-insight-header"><div class="ai-spark"><i class="ti ti-sun"></i></div><div><div class="ai-insight-title">Daily Recap</div><div class="ai-insight-sub" id="recapDate">Today</div></div></div>
+            <div class="ai-insight-text" id="recapOutput"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. WEEKLY REPORT -->
+      <div class="tab-panel" data-group="ai" data-name="weekly">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-calendar-stats"></i></div><div><div class="sc-title">Weekly Report</div><div class="sc-sub">A full AI-generated report covering this week's activity and trends</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runWeekly()" id="weeklyBtn"><i class="ti ti-sparkles"></i>Generate Weekly Report</button>
+          <div id="weeklyResult" class="ai-insight" style="margin-top:14px;display:none;white-space:pre-line">
+            <div class="ai-insight-header"><div class="ai-spark"><i class="ti ti-calendar-stats"></i></div><div><div class="ai-insight-title">Weekly Report</div><div class="ai-insight-sub">This week</div></div></div>
+            <div class="ai-insight-text" id="weeklyOutput" style="white-space:pre-line"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 11. AI RECOMMENDATIONS -->
+      <div class="tab-panel" data-group="ai" data-name="recommend">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-sparkles"></i></div><div><div class="sc-title">AI Recommendations</div><div class="sc-sub">Personalized next-step suggestions based on your memory library</div></div></div>
+          <button class="btn btn-primary" style="width:fit-content" onclick="runRecommend()" id="recommendBtn"><i class="ti ti-sparkles"></i>Get Recommendations</button>
+          <div id="recommendResult" style="margin-top:14px;display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<script>
+function toggleSidebar(){
+  const sidebar=document.getElementById('sidebar');
+  const btn=document.getElementById('collapse-btn');
+  const isCollapsed=sidebar.classList.toggle('collapsed');
+  btn.setAttribute('aria-expanded',String(!isCollapsed));
+  btn.setAttribute('aria-label',isCollapsed?'Expand sidebar':'Collapse sidebar');
+}
+document.querySelectorAll('.nav-item, .avatar').forEach(el=>{
+  el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();} });
+});
+function showTab(group, name, btn){
+  document.querySelectorAll('.tab-panel[data-group="'+group+'"]').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.seg-tab[data-group="'+group+'"]').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.tab-panel[data-group="'+group+'"][data-name="'+name+'"]').classList.add('active');
+  btn.classList.add('active');
+}
+function toggleAccordion(el){
+  const item = el.closest('.acc-item');
+  const isOpen = item.classList.toggle('open');
+  const ans = item.querySelector('.acc-a');
+  ans.style.maxHeight = isOpen ? ans.scrollHeight + 'px' : '0px';
+}
+
+/* ── Shared mock memory dataset (mirrors MemoryVault_Memories.jsx) ── */
+const MEMORIES = [
+  { id:"m1", type:"note", title:"Midnight thought on consciousness", content:"What if consciousness is simply the universe experiencing itself? The boundary between self and world seems less like a wall and more like a membrane—porous, shifting, defined only by attention. The idea of a 'hard problem' might itself be a cognitive artifact.", summary:"Philosophical reflection on consciousness as a permeable boundary rather than a fixed division between self and world.", tags:["philosophy","consciousness","ideas"], category:"Ideas" },
+  { id:"m2", type:"meeting", title:"Q3 Product Strategy Meeting", content:"Discussed roadmap priorities for Q3. Key decisions: Memory search gets priority over analytics dashboard. AI tagging to be rolled out in phases. Mobile PWA by end of quarter. Action items: Sarah owns search spec, Alex on AI pipeline, Marcus on mobile audit.", summary:"Q3 planning session covering roadmap priorities: search first, phased AI tagging, mobile PWA by quarter end.", tags:["work","strategy","product"], category:"Work" },
+  { id:"m3", type:"note", title:"Design principles from Dieter Rams", content:"Good design is innovative. Good design makes a product useful. Good design is aesthetic. Good design makes a product understandable. The less design, the better. Restraint is the hardest skill and the most valuable one.", summary:"Notes on Dieter Rams' ten principles of good design with personal reflections on restraint as the core skill.", tags:["design","principles","learning"], category:"Learning" },
+  { id:"m4", type:"conversation", title:"Chat with Sarah about remote work", content:"Sarah shared that she's been most productive between 6–9 AM before notifications start. She uses the Pomodoro method but with 50-min blocks. We talked about how async communication changes team trust dynamics—visibility becomes a proxy for reliability when presence isn't observable.", summary:"Discussion on remote work productivity rhythms and how async communication reshapes team trust dynamics.", tags:["remote-work","productivity","team"], category:"Work" },
+  { id:"m5", type:"voice_memo", title:"Voice memo: App idea brainstorm", content:"Idea: a memory app that uses spaced repetition not for facts but for feelings—resurfaces an old journal entry when the AI detects you're in a similar emotional context. The key insight is that memory isn't retrieval, it's reconstruction. Every recall changes the memory slightly.", summary:"Brainstorm on emotion-aware spaced repetition for personal memories, noting that recall is reconstruction not retrieval.", tags:["ideas","startup","ai","memory"], category:"Ideas" },
+  { id:"m6", type:"activity", title:"Morning run insights", content:"6.2 km in 31 minutes. Heart rate peaked at 172 bpm on the hill section. Felt strong after the first km warm-up. Mental clarity was notably better post-run. The ideas about the memory app came during the cooldown walk.", summary:"Morning run: 6.2km in 31min, peak HR 172. Notable mental clarity boost post-exercise triggering creative thinking.", tags:["fitness","health","running"], category:"Health" },
+  { id:"m7", type:"document", title:"Reading notes: Thinking Fast and Slow", content:"System 1 (fast) vs System 2 (slow) thinking. The availability heuristic explains why vivid, recent events distort our probability estimates. Most of our decisions are made by System 1 and rationalized afterward. The 'what you see is all there is' (WYSIATI) effect.", summary:"Core concepts from Kahneman's dual-process theory: System 1/2 thinking, availability heuristic, and WYSIATI bias.", tags:["reading","psychology","cognitive-bias","learning"], category:"Learning" },
+  { id:"m8", type:"image", title:"Sunset at the lake — photo journal", content:"The light was this impossible amber color, like the sky was apologizing for the whole day. Drove out to Lake Merced on a whim after the meeting. Sometimes the best memories are the unplanned ones. No agenda, no output. Just witness.", summary:"Spontaneous lake visit after work producing a reflective journal entry about presence and unplanned moments.", tags:["personal","nature","reflection","photography"], category:"Personal" },
+];
+
+const TYPE_COLOR = { note:'#3B82F6', voice_memo:'#EC4899', conversation:'#10B981', meeting:'#F97316', image:'#A855F7', document:'#14B8A6', activity:'#F59E0B' };
+const TYPE_ICON  = { note:'file-text', voice_memo:'microphone', conversation:'message-circle', meeting:'calendar-event', image:'photo', document:'file-text', activity:'activity' };
+
+function memById(id){ return MEMORIES.find(m => m.id === id); }
+
+async function callClaude(prompt, maxTokens) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'claude-sonnet-4-6', max_tokens: maxTokens || 1200, messages: [{ role: 'user', content: prompt }] }),
+  });
+  const data = await res.json();
+  return data.content?.[0]?.text?.trim() || '';
+}
+
+function setLoading(btnId, loading, label) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  if (loading) { btn.dataset.label = btn.innerHTML; btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .8s linear infinite"></i>' + (label||'Working…'); btn.disabled = true; btn.style.opacity = '.7'; }
+  else { btn.innerHTML = btn.dataset.label; btn.disabled = false; btn.style.opacity = '1'; }
+}
+
+/* populate all memory <select> dropdowns */
+function populateSelects() {
+  ['summarizeSelect','tagSelect','catSelect','relatedSelect'].forEach(id => {
+    const sel = document.getElementById(id);
+    sel.innerHTML = MEMORIES.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
+  });
+}
+
+function loadMemoryIntoField(selectId, contentId, titleId) {
+  const id = document.getElementById(selectId).value;
+  const m = memById(id) || memById(MEMORIES[0].id);
+  document.getElementById(contentId).value = m.content;
+  if (titleId) document.getElementById(titleId).value = m.title;
+}
+
+/* ── 1. AI CHAT ─────────────────────────────────────────── */
+function appendChat(text, role) {
+  const wrap = document.getElementById('chatMsgs');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + role;
+  div.innerHTML = role === 'user'
+    ? '<div class="chat-avatar user">MM</div><div class="chat-bubble user"></div>'
+    : '<div class="chat-avatar ai"><i class="ti ti-sparkles"></i></div><div class="chat-bubble ai"></div>';
+  div.querySelector('.chat-bubble').textContent = text;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return div.querySelector('.chat-bubble');
+}
+async function sendChatMsg() {
+  const input = document.getElementById('chatInput');
+  const val = input.value.trim();
+  if (!val) return;
+  input.value = '';
+  appendChat(val, 'user');
+  const bubble = appendChat('Thinking…', 'ai');
+  const context = MEMORIES.map(m => `[${m.id}] (${m.category}) "${m.title}": ${m.summary}`).join('\n');
+  const prompt = `You are MemoryVault's AI Assistant, grounded only in this user's personal memories below. Answer their question conversationally, citing memory titles where relevant. If the question can't be answered from these memories, say so honestly.\n\nMEMORIES:\n${context}\n\nUSER QUESTION: ${val}`;
+  try {
+    const reply = await callClaude(prompt, 600);
+    bubble.textContent = reply || "I couldn't generate a response — please try again.";
+  } catch (e) { bubble.textContent = 'Something went wrong reaching the AI.'; }
+}
+function sendChatChip(el) {
+  document.getElementById('chatInput').value = el.textContent;
+  sendChatMsg();
+}
+
+/* ── 2. SUMMARIZE ──────────────────────────────────────── */
+async function runSummarize() {
+  const title = document.getElementById('summarizeTitle').value || MEMORIES[0].title;
+  const content = document.getElementById('summarizeContent').value;
+  setLoading('summarizeBtn', true, 'Summarizing…');
+  try {
+    const out = await callClaude(`Generate a concise 1-2 sentence summary for this memory:\n\nTitle: ${title}\n\nContent: ${content}\n\nReturn ONLY the summary, no quotes, no preamble.`, 300);
+    document.getElementById('summarizeOutput').textContent = out;
+    document.getElementById('summarizeResult').style.display = 'block';
+  } finally { setLoading('summarizeBtn', false); }
+}
+
+/* ── 3. AUTO-TAGGING ───────────────────────────────────── */
+async function runAutoTag() {
+  const title = document.getElementById('tagTitle').value || MEMORIES[0].title;
+  const content = document.getElementById('tagContent').value;
+  setLoading('tagBtn', true, 'Tagging…');
+  try {
+    const out = await callClaude(`Generate 3-5 relevant lowercase tags (single words or hyphenated) for this memory:\n\nTitle: ${title}\n\nContent: ${content}\n\nReturn ONLY a JSON array of tag strings, e.g. ["tag1","tag2","tag3"]. No other text.`, 300);
+    const cleaned = out.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    let tags = [];
+    try { tags = JSON.parse(cleaned); } catch { tags = cleaned.split(',').map(s=>s.trim().replace(/["\[\]]/g,'')).filter(Boolean); }
+    document.getElementById('tagOutput').innerHTML = tags.map(t => `<span class="tag" style="background:rgba(124,58,237,.15);color:var(--a4)">#${t}</span>`).join(' ');
+    document.getElementById('tagResult').style.display = 'block';
+  } finally { setLoading('tagBtn', false); }
+}
+
+/* ── 4. SMART CATEGORIZATION ───────────────────────────── */
+async function runCategorize() {
+  const title = document.getElementById('catTitle').value || MEMORIES[0].title;
+  const content = document.getElementById('catContent').value;
+  setLoading('catBtn', true, 'Categorizing…');
+  try {
+    const out = await callClaude(`Classify this memory. Categories available: Work, Personal, Ideas, Learning, Health. Types available: note, voice_memo, conversation, meeting, image, document, activity.\n\nTitle: ${title}\nContent: ${content}\n\nReturn ONLY JSON like {"category":"Ideas","type":"note","confidence":0.92,"reasoning":"short reason"}. No other text.`, 300);
+    const cleaned = out.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    document.getElementById('catOutputCategory').textContent = parsed.category || '—';
+    document.getElementById('catOutputType').textContent = parsed.type || '—';
+    document.getElementById('catOutputConfidence').textContent = parsed.confidence ? Math.round(parsed.confidence*100) + '%' : '—';
+    document.getElementById('catOutputReason').textContent = parsed.reasoning || '—';
+    document.getElementById('catResult').style.display = 'flex';
+  } catch(e) { alert('Could not parse AI categorization — please try again.'); }
+  finally { setLoading('catBtn', false); }
+}
+
+/* ── 5. RELATED MEMORIES ───────────────────────────────── */
+async function runRelated() {
+  const id = document.getElementById('relatedSelect').value;
+  const m = memById(id);
+  const others = MEMORIES.filter(x => x.id !== id).map(x => ({ id: x.id, title: x.title, tags: x.tags, summary: x.summary }));
+  setLoading('relatedBtn', true, 'Finding…');
+  const resultEl = document.getElementById('relatedResult');
+  resultEl.innerHTML = '';
+  try {
+    const out = await callClaude(`Given this memory:\nTitle: ${m.title}\nContent: ${m.content.slice(0,500)}\n\nFind the 1-3 most related memories from this list:\n${JSON.stringify(others)}\n\nReturn ONLY a JSON array of IDs, e.g. ["m1","m3"]. No other text. If none are relevant, return [].`, 300);
+    const cleaned = out.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    const ids = JSON.parse(cleaned);
+    if (!ids.length) { resultEl.innerHTML = '<div class="field-hint">No strongly related memories were found.</div>'; }
+    ids.forEach(rid => { const rm = memById(rid); if (rm) resultEl.appendChild(renderMemoryCard(rm)); });
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Could not determine related memories — please try again.</div>'; }
+  finally { setLoading('relatedBtn', false); }
+}
+
+function renderMemoryCard(m) {
+  const div = document.createElement('div');
+  div.className = 'memory-card';
+  div.innerHTML = `<div class="mem-icon" style="background:${TYPE_COLOR[m.type]}22;color:${TYPE_COLOR[m.type]}"><i class="ti ti-${TYPE_ICON[m.type]}"></i></div>
+    <div class="mem-body"><div class="mem-top"><span class="mem-title">${m.title}</span></div>
+    <div class="mem-snippet">${m.summary}</div>
+    <div class="mem-tags">${m.tags.map(t=>`<span class="tag" style="background:rgba(255,255,255,.06);color:var(--ts)">#${t}</span>`).join('')}</div></div>`;
+  return div;
+}
+
+/* ── 6. DUPLICATE DETECTION ────────────────────────────── */
+async function runDuplicates() {
+  setLoading('dupBtn', true, 'Scanning…');
+  const resultEl = document.getElementById('dupResult');
+  resultEl.innerHTML = '';
+  try {
+    const list = MEMORIES.map(m => ({ id:m.id, title:m.title, summary:m.summary, tags:m.tags }));
+    const out = await callClaude(`Here is a user's full memory library:\n${JSON.stringify(list)}\n\nIdentify any pairs that are likely duplicates or near-duplicates (same event/topic captured twice, heavy overlap). This is a small sample library so duplicates may be rare or absent — be honest if there are none.\n\nReturn ONLY JSON: {"pairs":[{"a":"id","b":"id","reason":"short reason","similarity":0.0-1.0}]} with pairs as an empty array if none found. No other text.`, 500);
+    const cleaned = out.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (!parsed.pairs || !parsed.pairs.length) {
+      resultEl.innerHTML = '<div class="field-hint"><i class="ti ti-check" style="color:var(--ok)"></i> No likely duplicates found in your memory library.</div>';
+    } else {
+      parsed.pairs.forEach(p => {
+        const a = memById(p.a), b = memById(p.b);
+        const row = document.createElement('div');
+        row.className = 'export-row';
+        row.innerHTML = `<div class="export-meta"><div class="export-icon" style="background:rgba(245,158,11,.15);color:var(--warn)"><i class="ti ti-copy"></i></div>
+          <div><div class="export-title">${a?a.title:p.a} ↔ ${b?b.title:p.b}</div><div class="export-desc">${p.reason} · ${Math.round((p.similarity||0)*100)}% similar</div></div></div>
+          <button class="btn btn-secondary btn-sm"><i class="ti ti-eye"></i>Review</button>`;
+        resultEl.appendChild(row);
+      });
+    }
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Could not complete the duplicate scan — please try again.</div>'; }
+  finally { setLoading('dupBtn', false); }
+}
+
+/* ── 7. NATURAL LANGUAGE SEARCH ────────────────────────── */
+async function runNlSearch() {
+  const q = document.getElementById('nlsearchInput').value.trim();
+  if (!q) return;
+  setLoading('nlsearchBtn', true, 'Searching…');
+  const resultEl = document.getElementById('nlsearchResult');
+  resultEl.innerHTML = '';
+  try {
+    const list = MEMORIES.map(m => ({ id:m.id, title:m.title, summary:m.summary, tags:m.tags, category:m.category }));
+    const out = await callClaude(`A user is searching their personal memory library using natural language. Library:\n${JSON.stringify(list)}\n\nSearch query: "${q}"\n\nReturn the IDs of matching memories ranked by relevance, even if the query doesn't use exact keywords (match by meaning). Return ONLY JSON: {"results":[{"id":"m1","reason":"short reason it matches"}]}. Empty array if nothing matches. No other text.`, 400);
+    const cleaned = out.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    if (!parsed.results || !parsed.results.length) {
+      resultEl.innerHTML = '<div class="field-hint">No matching memories found for that query.</div>';
+    } else {
+      parsed.results.forEach(r => {
+        const m = memById(r.id);
+        if (!m) return;
+        const card = renderMemoryCard(m);
+        const hint = document.createElement('div');
+        hint.className = 'field-hint';
+        hint.style.marginTop = '-6px';
+        hint.innerHTML = `<i class="ti ti-sparkles" style="color:var(--a4)"></i> ${r.reason}`;
+        resultEl.appendChild(card);
+        resultEl.appendChild(hint);
+      });
+    }
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Search failed — please try again.</div>'; }
+  finally { setLoading('nlsearchBtn', false); }
+}
+
+/* ── 8. PRODUCTIVITY INSIGHTS ──────────────────────────── */
+async function runInsights() {
+  setLoading('insightsBtn', true, 'Analyzing…');
+  const resultEl = document.getElementById('insightsResult');
+  resultEl.innerHTML = '';
+  try {
+    const stats = { totalMemories:247, weekCaptures:12, favorites:38, byType:{notes:96,voice:41,conversations:58,meetings:27}, peakHours:'9-11 PM', peakDay:'Sunday', topTags:['philosophy','work','strategy','ideas','design'] };
+    const out = await callClaude(`Analyze this personal memory app usage data and produce 3 distinct productivity insights:\n${JSON.stringify(stats)}\n\nReturn ONLY JSON: {"insights":[{"title":"short title","detail":"1-2 sentence insight with a concrete suggestion"}]}. No other text.`, 500);
+    const cleaned = out.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    (parsed.insights||[]).forEach(ins => {
+      const card = document.createElement('div');
+      card.className = 'ai-insight';
+      card.innerHTML = `<div class="ai-insight-header"><div class="ai-spark"><i class="ti ti-bulb"></i></div><div><div class="ai-insight-title">${ins.title}</div></div></div><div class="ai-insight-text">${ins.detail}</div>`;
+      resultEl.appendChild(card);
+    });
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Could not generate insights — please try again.</div>'; }
+  finally { setLoading('insightsBtn', false); }
+}
+
+/* ── 9. DAILY RECAP ─────────────────────────────────────── */
+async function runRecap() {
+  setLoading('recapBtn', true, 'Writing recap…');
+  try {
+    const today = MEMORIES.slice(0,3);
+    const list = today.map(m => `- (${m.type}) "${m.title}": ${m.summary}`).join('\n');
+    const out = await callClaude(`Write a warm, brief daily recap (3-4 sentences) for a personal memory app, summarizing the memories someone captured today:\n${list}\n\nMention specific titles naturally. No preamble, no headers — just the recap text.`, 400);
+    document.getElementById('recapOutput').textContent = out;
+    document.getElementById('recapDate').textContent = new Date().toLocaleDateString(undefined,{weekday:'long', month:'long', day:'numeric'});
+    document.getElementById('recapResult').style.display = 'block';
+  } finally { setLoading('recapBtn', false); }
+}
+
+/* ── 10. WEEKLY REPORT ──────────────────────────────────── */
+async function runWeekly() {
+  setLoading('weeklyBtn', true, 'Building report…');
+  try {
+    const list = MEMORIES.map(m => `- (${m.category}/${m.type}) "${m.title}": ${m.summary}`).join('\n');
+    const out = await callClaude(`Write a structured weekly report for a personal memory app user, based on this week's captured memories:\n${list}\n\nInclude: a one-line headline, 3 short bullet-style highlights (use "- " prefix), and one forward-looking suggestion for next week. Plain text only, no markdown headers, no asterisks.`, 600);
+    document.getElementById('weeklyOutput').textContent = out;
+    document.getElementById('weeklyResult').style.display = 'block';
+  } finally { setLoading('weeklyBtn', false); }
+}
+
+/* ── 11. AI RECOMMENDATIONS ────────────────────────────── */
+async function runRecommend() {
+  setLoading('recommendBtn', true, 'Thinking…');
+  const resultEl = document.getElementById('recommendResult');
+  resultEl.innerHTML = '';
+  try {
+    const list = MEMORIES.map(m => ({ title:m.title, category:m.category, tags:m.tags }));
+    const out = await callClaude(`Based on this user's memory library:\n${JSON.stringify(list)}\n\nSuggest 3 concrete, actionable recommendations for how they could better use a personal memory app (e.g. collections to create, habits to build, connections to revisit). Return ONLY JSON: {"recs":[{"icon":"folders|tag|bell|star|sparkles","title":"short title","detail":"1 sentence action"}]}. No other text.`, 500);
+    const cleaned = out.replace(/\`\`\`json|\`\`\`/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+    (parsed.recs||[]).forEach(r => {
+      const row = document.createElement('div');
+      row.className = 'export-row';
+      row.innerHTML = `<div class="export-meta"><div class="export-icon"><i class="ti ti-${r.icon||'sparkles'}"></i></div><div><div class="export-title">${r.title}</div><div class="export-desc">${r.detail}</div></div></div><button class="btn btn-secondary btn-sm"><i class="ti ti-arrow-right"></i>Apply</button>`;
+      resultEl.appendChild(row);
+    });
+  } catch(e) { resultEl.innerHTML = '<div class="field-hint">Could not generate recommendations — please try again.</div>'; }
+  finally { setLoading('recommendBtn', false); }
+}
+
+populateSelects();
+loadMemoryIntoField('summarizeSelect','summarizeContent','summarizeTitle');
+loadMemoryIntoField('tagSelect','tagContent','tagTitle');
+loadMemoryIntoField('catSelect','catContent','catTitle');
+
+const styleSpin2 = document.createElement('style');
+styleSpin2.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';
+document.head.appendChild(styleSpin2);
+
+</script>
+<script src="shared/polish.js"></script>
+</body>
+</html>

@@ -1,0 +1,331 @@
+{% extends "vault/base.html" %}
+{% load static %}
+
+{% block title %}Categories{% endblock %}
+{% block topbar_title %}Categories{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/account-pages.css' %}">
+<link rel="stylesheet" href="{% static 'vault/css/memories.css' %}">
+<link rel="stylesheet" href="{% static 'vault/css/categories.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Category Analytics</h1>
+      <p>How your memories break down across categories</p>
+    </div>
+    <button type="button" class="btn btn-primary" id="newCategoryBtn">
+      <i class="ti ti-plus" aria-hidden="true"></i>New Category
+    </button>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="field-hint" role="status" style="margin:4px 0 0;color:var(--ok,#22C55E)">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ── STAT ROW ─────────────────────────────────────────────── -->
+  <div class="stats-grid" style="margin:20px 0 32px">
+    <div class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon" style="background:rgba(124,58,237,.12);color:#7C3AED" aria-hidden="true"><i class="ti ti-folder"></i></div>
+      </div>
+      <div class="stat-value">{{ total_categories }}</div>
+      <div class="stat-label">Total Categories</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon" style="background:rgba(59,130,246,.12);color:#3B82F6" aria-hidden="true"><i class="ti ti-layers"></i></div>
+      </div>
+      <div class="stat-value">{{ total_memories }}</div>
+      <div class="stat-label">Total Memories</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10B981" aria-hidden="true"><i class="ti ti-chart-bar"></i></div>
+      </div>
+      <div class="stat-value" style="font-size:22px">{{ most_active_category.name|default:"—" }}</div>
+      <div class="stat-label">Most Active Category</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-header">
+        <div class="stat-icon" style="background:rgba(245,158,11,.12);color:#F59E0B" aria-hidden="true"><i class="ti ti-activity"></i></div>
+      </div>
+      <div class="stat-value">{{ avg_per_category }}</div>
+      <div class="stat-label">Avg Memories / Category</div>
+    </div>
+  </div>
+
+  <h2 class="section-title">All Categories</h2>
+
+  {% if categories %}
+    <div class="category-grid" role="list" aria-label="Your categories">
+      {% for category in categories %}
+        <a class="category-card" role="listitem" href="?open={{ category.pk }}">
+          <div class="cat-card-top">
+            <div class="cat-icon" style="background:{{ category.color }}" aria-hidden="true">
+              <i class="ti ti-{{ category.icon }}"></i>
+            </div>
+            <div class="cat-menu" onclick="event.preventDefault(); event.stopPropagation();">
+              <button type="button" class="icon-btn cat-menu-btn" aria-label="Category options" aria-haspopup="true" aria-expanded="false">
+                <i class="ti ti-dots" aria-hidden="true"></i>
+              </button>
+              <div class="cat-menu-list" hidden>
+                <button type="button" class="cat-menu-item edit-category-btn"
+                        data-edit-url="{% url 'vault:category_edit' category.pk %}"
+                        data-name="{{ category.name|escapejs }}"
+                        data-description="{{ category.description|escapejs }}"
+                        data-icon="{{ category.icon }}"
+                        data-color="{{ category.color }}">
+                  <i class="ti ti-edit" aria-hidden="true"></i>Edit
+                </button>
+                <form method="post" action="{% url 'vault:category_delete' category.pk %}"
+                      onsubmit="return confirm('Delete &quot;{{ category.name|escapejs }}&quot;? {% if category.live_count %}{{ category.live_count }} {% if category.live_count == 1 %}memory{% else %}memories{% endif %} will be moved to &quot;Other&quot;.{% else %}This category has no memories.{% endif %} This cannot be undone.');">
+                  {% csrf_token %}
+                  <button type="submit" class="cat-menu-item danger">
+                    <i class="ti ti-trash" aria-hidden="true"></i>Delete
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="cat-card-body">
+            <h3>{{ category.name }}</h3>
+            <p>{{ category.description|default:"No description" }}</p>
+          </div>
+
+          <div class="cat-card-progress">
+            <div class="cat-progress-row">
+              <span class="cat-count">{{ category.live_count }} {% if category.live_count == 1 %}memory{% else %}memories{% endif %}</span>
+              <span class="cat-pct">{{ category.live_pct }}%</span>
+            </div>
+            <div class="cat-progress-track">
+              <div class="cat-progress-fill" style="width:{{ category.live_pct }}%;background:{{ category.color }}"></div>
+            </div>
+          </div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true"><i class="ti ti-folder"></i></div>
+      <h3>No categories yet</h3>
+      <p>Create a category to start organizing your memories.</p>
+      <button type="button" class="btn btn-primary empty-action" id="emptyStateNewCategoryBtn">
+        <i class="ti ti-plus" aria-hidden="true"></i>New Category
+      </button>
+    </div>
+  {% endif %}
+
+  <!-- ── CREATE / EDIT MODAL ─────────────────────────────────── -->
+  <div class="modal-scrim{% if editing %} show{% endif %}" id="categoryModalScrim">
+    <div class="modal" style="width:460px">
+      <div class="modal-head">
+        <h3 id="categoryModalTitle">{% if editing %}Edit Category{% else %}New Category{% endif %}</h3>
+        <button type="button" class="icon-btn" id="categoryModalClose" aria-label="Close"><i class="ti ti-x"></i></button>
+      </div>
+
+      <form method="post"
+            id="categoryForm"
+            action="{% if editing %}{% url 'vault:category_edit' editing.pk %}{% else %}{% url 'vault:categories' %}{% endif %}">
+        {% csrf_token %}
+        <div class="modal-body">
+
+          <div class="cat-form-head">
+            <div class="cat-icon cat-preview" id="categoryPreviewIcon" style="background:{{ form.color.value|default:'#A855F7' }}" aria-hidden="true">
+              <i class="ti ti-{{ form.icon.value|default:'folder' }}" id="categoryPreviewIconGlyph"></i>
+            </div>
+            <div class="field" style="flex:1;margin-bottom:0">
+              <label for="{{ form.name.id_for_label }}">Name</label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="field-error"><i class="ti ti-alert-circle"></i>{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="{{ form.description.id_for_label }}">Description</label>
+            {{ form.description }}
+          </div>
+
+          <div class="field">
+            <label>Color</label>
+            <div class="swatch-row" id="colorSwatchRow">
+              {% for hex in color_choices %}
+                <button type="button" class="color-swatch" data-color="{{ hex }}" style="background:{{ hex }}" aria-label="Choose color {{ hex }}"></button>
+              {% endfor %}
+            </div>
+            {{ form.color }}
+          </div>
+
+          <div class="field">
+            <label>Icon</label>
+            <div class="swatch-row" id="iconSwatchRow">
+              {% for key, label in icon_choices %}
+                <button type="button" class="icon-swatch" data-icon="{{ key }}" aria-label="{{ label }} icon"><i class="ti ti-{{ key }}" aria-hidden="true"></i></button>
+              {% endfor %}
+            </div>
+            {{ form.icon }}
+          </div>
+
+        </div>
+        <div class="modal-foot">
+          <button type="button" class="btn btn-secondary" id="categoryModalCancel">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="margin-left:auto">
+            <i class="ti ti-check" aria-hidden="true"></i>{% if editing %}Save Changes{% else %}Create Category{% endif %}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ── DETAIL MODAL (read-only) ────────────────────────────── -->
+  <div class="modal-scrim{% if open_category %} show{% endif %}" id="categoryDetailScrim">
+    {% if open_category %}
+      <div class="modal" style="width:560px;max-height:85vh;overflow-y:auto">
+        <div class="modal-head">
+          <div style="display:flex;align-items:center;gap:14px;flex:1">
+            <div class="cat-icon" style="background:{{ open_category.color }}" aria-hidden="true"><i class="ti ti-{{ open_category.icon }}"></i></div>
+            <div>
+              <h3 style="margin:0">{{ open_category.name }}</h3>
+              <p class="field-hint" style="margin:2px 0 0">{{ open_category.memory_count }} {% if open_category.memory_count == 1 %}memory{% else %}memories{% endif %}</p>
+            </div>
+          </div>
+          <a href="{% url 'vault:categories' %}" class="icon-btn" aria-label="Close"><i class="ti ti-x"></i></a>
+        </div>
+        <div class="modal-body">
+          <p class="cat-detail-heading">Breakdown by type</p>
+          {% if category_breakdown %}
+            <div class="cat-breakdown">
+              {% for t in category_breakdown %}
+                <div class="cat-breakdown-row">
+                  <i class="ti ti-{{ t.icon }}" style="color:{{ t.color }}" aria-hidden="true"></i>
+                  <span class="cat-breakdown-label">{{ t.label }}</span>
+                  <div class="cat-breakdown-track"><div class="cat-breakdown-fill" style="width:{{ t.pct }}%;background:{{ t.color }}"></div></div>
+                  <span class="cat-breakdown-count">{{ t.count }}</span>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="field-hint">No memories in this category yet.</p>
+          {% endif %}
+
+          <p class="cat-detail-heading">Recent in this category</p>
+          {% if category_recent_items %}
+            <div class="cat-recent-list">
+              {% for m in category_recent_items %}
+                <div class="cat-recent-row">
+                  <div class="mem-icon" style="background:{{ m.type_bg }};color:{{ m.type_color }}" aria-hidden="true"><i class="ti ti-{{ m.type_icon }}"></i></div>
+                  <div class="cat-recent-body">
+                    <p class="cat-recent-title">{{ m.title }}</p>
+                    <p class="cat-recent-time">{{ m.created_at|date:"M j, Y" }}</p>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <p class="field-hint">Nothing here yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endif %}
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const scrim    = document.getElementById('categoryModalScrim');
+  const form     = document.getElementById('categoryForm');
+  const title    = document.getElementById('categoryModalTitle');
+  const closeBtn = document.getElementById('categoryModalClose');
+  const cancelBtn= document.getElementById('categoryModalCancel');
+  const createUrl = "{% url 'vault:categories' %}";
+
+  const f = {
+    name:        document.getElementById('{{ form.name.id_for_label }}'),
+    description: document.getElementById('{{ form.description.id_for_label }}'),
+    icon:        document.getElementById('{{ form.icon.id_for_label }}'),
+    color:       document.getElementById('{{ form.color.id_for_label }}'),
+  };
+  const previewWrap  = document.getElementById('categoryPreviewIcon');
+  const previewGlyph = document.getElementById('categoryPreviewIconGlyph');
+
+  function setColor(hex) {
+    f.color.value = hex;
+    previewWrap.style.background = hex;
+    document.querySelectorAll('#colorSwatchRow .color-swatch').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.color === hex);
+    });
+  }
+
+  function setIcon(key) {
+    f.icon.value = key;
+    previewGlyph.className = 'ti ti-' + key;
+    document.querySelectorAll('#iconSwatchRow .icon-swatch').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.icon === key);
+    });
+  }
+
+  document.querySelectorAll('#colorSwatchRow .color-swatch').forEach((btn) => {
+    btn.addEventListener('click', () => setColor(btn.dataset.color));
+  });
+  document.querySelectorAll('#iconSwatchRow .icon-swatch').forEach((btn) => {
+    btn.addEventListener('click', () => setIcon(btn.dataset.icon));
+  });
+
+  function openModal() { scrim.classList.add('show'); }
+  function closeModal() { scrim.classList.remove('show'); }
+
+  function resetForCreate() {
+    title.textContent = 'New Category';
+    form.action = createUrl;
+    form.reset();
+    setColor('{{ color_choices.0 }}');
+    setIcon('folder');
+  }
+
+  document.getElementById('newCategoryBtn')?.addEventListener('click', () => { resetForCreate(); openModal(); });
+  document.getElementById('emptyStateNewCategoryBtn')?.addEventListener('click', () => { resetForCreate(); openModal(); });
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  scrim.addEventListener('click', (e) => { if (e.target === scrim) closeModal(); });
+
+  document.querySelectorAll('.edit-category-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      title.textContent = 'Edit Category';
+      form.action = btn.dataset.editUrl;
+      f.name.value        = btn.dataset.name;
+      f.description.value = btn.dataset.description;
+      setIcon(btn.dataset.icon);
+      setColor(btn.dataset.color);
+      openModal();
+    });
+  });
+
+  // Initialise swatch highlighting for the (possibly pre-filled) form
+  setColor(f.color.value || '{{ color_choices.0 }}');
+  setIcon(f.icon.value || 'folder');
+
+  // Per-card "..." menus
+  document.querySelectorAll('.cat-menu').forEach((menu) => {
+    const btn  = menu.querySelector('.cat-menu-btn');
+    const list = menu.querySelector('.cat-menu-list');
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const isOpen = !list.hidden;
+      document.querySelectorAll('.cat-menu-list').forEach((l) => { l.hidden = true; });
+      list.hidden = isOpen;
+      btn.setAttribute('aria-expanded', String(isOpen));
+    });
+  });
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.cat-menu-list').forEach((l) => { l.hidden = true; });
+  });
+})();
+</script>
+{% endblock %}

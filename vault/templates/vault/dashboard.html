@@ -1,0 +1,416 @@
+{% extends "vault/base.html" %}
+{% load static %}
+{% load vault_extras %}
+
+{% block title %}Dashboard{% endblock %}
+{% block topbar_title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/dashboard.css' %}">
+{% endblock %}
+
+{% block content %}
+      <!-- Welcome -->
+      <section class="welcome" aria-label="Welcome">
+        <div class="welcome-left">
+          <h1>{{ greeting }}, {{ display_name }} 👋</h1>
+          <p>You have <span>{{ insights_this_week }} new AI insights</span> and <span>{{ week_count }} memories</span> captured this week.</p>
+        </div>
+        <button class="ask-btn ripple-surface" aria-label="Open AI Assistant" onclick="location.href='{% url 'vault:ai_assistant' %}'">
+          <i class="ti ti-sparkles" aria-hidden="true"></i>
+          Ask your memory
+        </button>
+      </section>
+
+      <!-- Stat cards -->
+      <section aria-label="Statistics">
+        <div data-loading="true" data-load-delay="600">
+          <div class="skel-wrap stats-grid" aria-hidden="true">
+            <div class="skel-card"><div class="skel skel-circle" style="width:34px;height:34px"></div><div class="skel skel-text w-60" style="height:22px;margin-top:10px"></div><div class="skel skel-text w-40"></div></div>
+            <div class="skel-card"><div class="skel skel-circle" style="width:34px;height:34px"></div><div class="skel skel-text w-60" style="height:22px;margin-top:10px"></div><div class="skel skel-text w-40"></div></div>
+            <div class="skel-card"><div class="skel skel-circle" style="width:34px;height:34px"></div><div class="skel skel-text w-60" style="height:22px;margin-top:10px"></div><div class="skel skel-text w-40"></div></div>
+            <div class="skel-card"><div class="skel skel-circle" style="width:34px;height:34px"></div><div class="skel skel-text w-60" style="height:22px;margin-top:10px"></div><div class="skel skel-text w-40"></div></div>
+          </div>
+          <div class="real-content">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon" style="background:rgba(59,130,246,.12);color:#3B82F6" aria-hidden="true">
+                <i class="ti ti-brain"></i>
+              </div>
+              <span class="stat-delta {{ total_delta_dir }}" aria-label="{% if total_delta_pct >= 0 %}Up {{ total_delta_pct }}{% else %}Down {{ total_delta_pct }}{% endif %} percent">{% if total_delta_pct >= 0 %}+{% endif %}{{ total_delta_pct }}%</span>
+            </div>
+            <div class="stat-value" id="cnt-total" aria-label="Total memories">0</div>
+            <div class="stat-label">Total memories</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon" style="background:rgba(16,185,129,.12);color:#10B981" aria-hidden="true">
+                <i class="ti ti-calendar-week"></i>
+              </div>
+              <span class="stat-delta {{ week_delta_dir }}" aria-label="{% if week_delta >= 0 %}Up {{ week_delta }}{% else %}Down {{ week_delta }}{% endif %}">{% if week_delta >= 0 %}+{% endif %}{{ week_delta }}</span>
+            </div>
+            <div class="stat-value" id="cnt-week" aria-label="Memories this week">0</div>
+            <div class="stat-label">This week</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon" style="background:rgba(251,191,36,.12);color:#FBBF24" aria-hidden="true">
+                <i class="ti ti-star"></i>
+              </div>
+              <span class="stat-delta {{ favorite_delta_dir }}" aria-label="Up {{ favorite_delta }}">+{{ favorite_delta }}</span>
+            </div>
+            <div class="stat-value" id="cnt-fav" aria-label="Favorite memories">0</div>
+            <div class="stat-label">Favorites</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header">
+              <div class="stat-icon" style="background:rgba(124,58,237,.15);color:#9F75F0" aria-hidden="true">
+                <i class="ti ti-sparkles"></i>
+              </div>
+              <span class="stat-delta neutral">AI</span>
+            </div>
+            <div class="stat-value" id="cnt-insights" aria-label="AI insights generated">0</div>
+            <div class="stat-label">AI insights generated</div>
+          </div>
+        </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Two-column grid -->
+      <div class="two-col">
+
+        <!-- Left column -->
+        <div class="col-left">
+
+          <!-- Weekly chart -->
+          <section class="chart-card" aria-label="Weekly productivity chart">
+            <div class="section-header">
+              <span class="section-title">Weekly productivity</span>
+              <span class="section-link" role="button" tabindex="0">Last 7 days</span>
+            </div>
+            <div class="chart-legend" aria-hidden="true">
+              <span class="legend-item"><span class="legend-dot" style="background:#3B82F6"></span>Notes</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#10B981"></span>Conversations</span>
+              <span class="legend-item"><span class="legend-dot" style="background:#A855F7"></span>Voice</span>
+            </div>
+            <div style="position:relative;height:180px;">
+              <canvas id="weekChart" role="img" aria-label="Stacked bar chart of weekly memory activity across Notes, Conversations, and Voice categories for Mon–Sun">Weekly memory activity data.</canvas>
+            </div>
+          </section>
+
+          <!-- Recent memories -->
+          <section aria-label="Recent memories">
+            <div class="section-header">
+              <span class="section-title">Recent memories</span>
+              <a class="section-link" href="#" aria-label="View all memories">View all →</a>
+            </div>
+            <div data-loading="true" data-load-delay="850">
+              <div class="skel-wrap" aria-hidden="true" style="display:flex;flex-direction:column;gap:10px">
+                <div class="skel-card"><div class="skel-row"><div class="skel skel-circle" style="width:32px;height:32px"></div><div style="flex:1"><div class="skel skel-text w-60"></div><div class="skel skel-text w-80"></div></div></div></div>
+                <div class="skel-card"><div class="skel-row"><div class="skel skel-circle" style="width:32px;height:32px"></div><div style="flex:1"><div class="skel skel-text w-40"></div><div class="skel skel-text w-full"></div></div></div></div>
+                <div class="skel-card"><div class="skel-row"><div class="skel skel-circle" style="width:32px;height:32px"></div><div style="flex:1"><div class="skel skel-text w-60"></div><div class="skel skel-text w-30"></div></div></div></div>
+              </div>
+              <div class="real-content">
+            <div class="memory-list" role="list">
+
+              {% for memory in recent_memories %}
+              <div class="memory-card" role="listitem" tabindex="0">
+                <div class="mem-icon" style="background:{{ memory.type_bg }};color:{{ memory.type_color }}" aria-hidden="true">
+                  <i class="ti ti-{{ memory.type_icon }}"></i>
+                </div>
+                <div class="mem-body">
+                  <div class="mem-top">
+                    <span class="mem-title">{{ memory.title }}</span>
+                    <span class="mem-time">{{ memory.created_at|friendly_time }}</span>
+                  </div>
+                  <div class="mem-snippet">{{ memory.content|striptags|truncatechars:90 }}</div>
+                  <div class="mem-tags">
+                    {% if memory.category %}<span class="tag" style="background:rgba(124,58,237,.12);color:#9F75F0">{{ memory.category }}</span>{% endif %}
+                    {% for tag in memory.tags.all %}
+                      <span class="tag" style="background:rgba(59,130,246,.12);color:#3B82F6">{{ tag.name }}</span>
+                    {% endfor %}
+                  </div>
+                </div>
+              </div>
+              {% empty %}
+              <p class="empty-state" style="padding:24px 0;color:#6B7290">No memories captured yet — use Quick capture to add your first one.</p>
+              {% endfor %}
+
+            </div>
+              </div>
+            </div>
+          </section>
+
+        </div><!-- /col-left -->
+
+        <!-- Right column -->
+        <div class="col-right">
+
+          <!-- AI Insight -->
+          <section class="ai-insight" aria-label="AI Insight">
+            <div class="ai-insight-header">
+              <div class="ai-spark" aria-hidden="true">
+                <i class="ti ti-sparkles"></i>
+              </div>
+              <div style="flex:1">
+                <div class="ai-insight-title">AI Insight</div>
+                <div class="ai-insight-sub" id="aiInsightSub">Generated just now</div>
+              </div>
+              <button class="icon-btn" style="width:28px;height:28px" aria-label="Refresh insight" onclick="refreshAIInsight()" id="aiInsightRefreshBtn">
+                <i class="ti ti-refresh" aria-hidden="true"></i>
+              </button>
+            </div>
+            <div class="ai-insight-text" id="aiInsightText">
+              You've captured 3× more ideas on Sunday evenings. Consider scheduling a weekly "brainstorm window" — your note-taking peaks between 9–11 PM and those sessions have your highest-quality connections.
+            </div>
+          </section>
+
+          <!-- Quick capture -->
+          <section aria-label="Quick capture">
+            <div class="section-header">
+              <span class="section-title">Quick capture</span>
+            </div>
+            <div class="quick-actions" role="list">
+              <div class="qa-tile" role="button" tabindex="0" aria-label="Capture a note">
+                <div class="qa-icon" style="background:rgba(59,130,246,.12);color:#3B82F6" aria-hidden="true">
+                  <i class="ti ti-file-plus"></i>
+                </div>
+                <span class="qa-label">Note</span>
+              </div>
+              <div class="qa-tile" role="button" tabindex="0" aria-label="Capture a voice memo">
+                <div class="qa-icon" style="background:rgba(236,72,153,.12);color:#EC4899" aria-hidden="true">
+                  <i class="ti ti-microphone"></i>
+                </div>
+                <span class="qa-label">Voice</span>
+              </div>
+              <div class="qa-tile" role="button" tabindex="0" aria-label="Capture a chat">
+                <div class="qa-icon" style="background:rgba(16,185,129,.12);color:#10B981" aria-hidden="true">
+                  <i class="ti ti-message-circle"></i>
+                </div>
+                <span class="qa-label">Chat</span>
+              </div>
+              <div class="qa-tile" role="button" tabindex="0" aria-label="Capture meeting notes">
+                <div class="qa-icon" style="background:rgba(249,115,22,.12);color:#F97316" aria-hidden="true">
+                  <i class="ti ti-calendar-plus"></i>
+                </div>
+                <span class="qa-label">Meeting</span>
+              </div>
+            </div>
+          </section>
+
+          <!-- Recent tasks -->
+          <section aria-label="Recent tasks">
+            <div class="section-header">
+              <span class="section-title">Recent tasks</span>
+              <a class="section-link" href="#" aria-label="View all tasks">View all →</a>
+            </div>
+            <div class="task-list" role="list">
+
+              {% for task in dashboard_tasks %}
+              <div class="task-item" role="listitem" data-task-id="{{ task.pk }}">
+                <div class="task-check{% if task.status == 'done' %} done{% endif %}" onclick="toggleTask(this)" role="checkbox" tabindex="0" aria-checked="{% if task.status == 'done' %}true{% else %}false{% endif %}" aria-label="{% if task.status == 'done' %}Task complete{% else %}Task incomplete{% endif %}">
+                  {% if task.status == 'done' %}<i class="ti ti-check" style="font-size:10px;color:#fff" aria-hidden="true"></i>{% endif %}
+                </div>
+                <span class="task-text{% if task.status == 'done' %} done{% endif %}">{{ task.title }}</span>
+                <span class="task-badge" style="background:{{ task.badge_bg }};color:{{ task.badge_color }}">{{ task.badge_label }}</span>
+              </div>
+              {% empty %}
+              <p class="empty-state" style="padding:24px 0;color:#6B7290">No tasks yet — create one from the Productivity page.</p>
+              {% endfor %}
+
+            </div>
+          </section>
+
+          <!-- Activity timeline -->
+          <section class="timeline-card" aria-label="Activity timeline">
+            <div class="section-header">
+              <span class="section-title">Activity timeline</span>
+            </div>
+            <div class="timeline-list" role="list">
+
+              {% for event in timeline_events %}
+              <div class="tl-item" role="listitem">
+                <div class="tl-dot" style="background:{{ event.dot_color }}" aria-hidden="true"></div>
+                <div class="tl-body">
+                  <div class="tl-label">{{ event.label }}</div>
+                  <div class="tl-sub">{{ event.sub|truncatechars:60 }}</div>
+                  <div class="tl-time">{{ event.created_at|friendly_time }}</div>
+                </div>
+              </div>
+              {% empty %}
+              <p class="empty-state" style="padding:24px 0;color:#6B7290">No activity yet — your recent actions will show up here.</p>
+              {% endfor %}
+
+            </div>
+          </section>
+
+        </div><!-- /col-right -->
+
+      </div><!-- /two-col -->
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+{{ chart_data|json_script:"chart-data" }}
+<script>
+  const CHART_DATA = JSON.parse(document.getElementById('chart-data').textContent);
+</script>
+<script>
+  /* ── Task toggle (persisted — Step 14c) ─────────────────── */
+  function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+  }
+
+  function applyTaskUI(checkEl, isDone, badgeLabel, badgeColor, badgeBg) {
+    const item    = checkEl.closest('.task-item');
+    const textEl  = item.querySelector('.task-text');
+    const badgeEl = item.querySelector('.task-badge');
+
+    checkEl.classList.toggle('done', isDone);
+    checkEl.innerHTML = isDone ? '<i class="ti ti-check" style="font-size:10px;color:#fff" aria-hidden="true"></i>' : '';
+    checkEl.setAttribute('aria-checked', String(isDone));
+    checkEl.setAttribute('aria-label', isDone ? 'Task complete' : 'Task incomplete');
+    textEl.classList.toggle('done', isDone);
+
+    badgeEl.textContent = badgeLabel;
+    badgeEl.style.background = badgeBg;
+    badgeEl.style.color = badgeColor;
+  }
+
+  function toggleTask(checkEl) {
+    const item     = checkEl.closest('.task-item');
+    const taskId   = item.dataset.taskId;
+    const wasDone  = checkEl.classList.contains('done');
+    const nowDone  = !wasDone;
+
+    // Optimistic update so the UI feels instant.
+    applyTaskUI(checkEl, nowDone, nowDone ? 'Done' : '…', nowDone ? '#22C55E' : '#6B7290', nowDone ? 'rgba(34,197,94,.12)' : 'rgba(107,114,144,.12)');
+
+    fetch(`/tasks/${taskId}/toggle/`, {
+      method: 'POST',
+      headers: { 'X-CSRFToken': getCsrfToken() },
+    })
+      .then(res => { if (!res.ok) throw new Error('toggle failed'); return res.json(); })
+      .then(data => {
+        applyTaskUI(checkEl, data.status === 'done', data.badge_label, data.badge_color, data.badge_bg);
+      })
+      .catch(() => {
+        // Revert on failure — persistence didn't happen, so the UI shouldn't lie.
+        applyTaskUI(checkEl, wasDone, wasDone ? 'Done' : 'Later', wasDone ? '#22C55E' : '#3B82F6', wasDone ? 'rgba(34,197,94,.12)' : 'rgba(59,130,246,.12)');
+      });
+  }
+
+  /* ── Stat count-up ──────────────────────────────────────── */
+  function countUp(id, target, delayMs) {
+    setTimeout(() => {
+      const el   = document.getElementById(id);
+      let   cur  = 0;
+      const step = Math.ceil(target / 30);
+      const timer = setInterval(() => {
+        cur = Math.min(cur + step, target);
+        el.textContent = cur.toLocaleString();
+        if (cur >= target) clearInterval(timer);
+      }, 16);
+    }, delayMs);
+  }
+
+  /* ── Live AI Productivity Insight ──────────────────────── */
+  async function refreshAIInsight() {
+    const textEl = document.getElementById('aiInsightText');
+    const subEl  = document.getElementById('aiInsightSub');
+    const btn    = document.getElementById('aiInsightRefreshBtn');
+    btn.querySelector('i').style.animation = 'spin 0.8s linear infinite';
+    textEl.style.opacity = '0.5';
+    subEl.textContent = 'Generating…';
+    try {
+      const res = await fetch('{% url "vault:dashboard_ai_insight" %}', {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      });
+      if (!res.ok) throw new Error('insight request failed');
+      const data = await res.json();
+      textEl.textContent = data.insight || 'Unable to generate an insight right now — please try again.';
+      subEl.textContent = 'Generated just now';
+    } catch (e) {
+      subEl.textContent = 'Could not reach AI — showing last insight';
+    } finally {
+      textEl.style.opacity = '1';
+      btn.querySelector('i').style.animation = '';
+    }
+  }
+  document.addEventListener('DOMContentLoaded', () => setTimeout(refreshAIInsight, 600));
+
+  const styleSpin = document.createElement('style');
+  styleSpin.textContent = '@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}';
+  document.head.appendChild(styleSpin);
+
+  countUp('cnt-total',   {{ total_memories }}, 400);
+  countUp('cnt-week',    {{ week_count }}, 500);
+  countUp('cnt-fav',     {{ favorite_count }}, 600);
+  countUp('cnt-insights', {{ insight_count }}, 700);
+
+  /* ── Weekly productivity chart ──────────────────────────── */
+  const ctx = document.getElementById('weekChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: CHART_DATA.labels,
+      datasets: [
+        {
+          label: 'Notes',
+          data: CHART_DATA.notes,
+          backgroundColor: 'rgba(59,130,246,.75)',
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+        {
+          label: 'Conversations',
+          data: CHART_DATA.conversations,
+          backgroundColor: 'rgba(16,185,129,.75)',
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+        {
+          label: 'Voice',
+          data: CHART_DATA.voice,
+          backgroundColor: 'rgba(168,85,247,.75)',
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#181A33',
+          borderColor: '#2A2D4D',
+          borderWidth: 1,
+          titleColor: '#F8FAFC',
+          bodyColor: '#A1A8C3',
+          padding: 10,
+          cornerRadius: 8,
+        },
+      },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { display: false },
+          ticks: { color: '#6B7290', font: { size: 11, family: 'Inter' } },
+        },
+        y: {
+          stacked: true,
+          grid: { color: 'rgba(33,35,63,.8)' },
+          ticks: { color: '#6B7290', font: { size: 11, family: 'Inter' }, maxTicksLimit: 4 },
+        },
+      },
+    },
+  });
+</script>
+{% endblock %}

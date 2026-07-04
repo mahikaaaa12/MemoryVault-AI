@@ -1,0 +1,707 @@
+{% extends "vault/base.html" %}
+{% load static %}
+
+{% block title %}Productivity{% endblock %}
+{% block topbar_title %}Calendar{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/productivity.css' %}">
+{% endblock %}
+
+{% block content %}
+      <!-- ================= TASKS PAGE ================= -->
+      <section class="page" id="page-tasks">
+        <div class="page-head">
+          <div>
+            <h1>Tasks</h1>
+            <p id="taskSubtitle">0 tasks · 0 due today</p>
+          </div>
+          <div class="head-actions">
+            <div class="segctl" id="taskViewToggle">
+              <button class="active" data-view="list"><i class="ti ti-list"></i>List</button>
+              <button data-view="kanban"><i class="ti ti-layout-kanban"></i>Kanban</button>
+            </div>
+            <button class="btn btn-primary" id="newTaskBtn"><i class="ti ti-plus"></i>New Task</button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <div class="search-input"><i class="ti ti-search s-icon"></i><input id="taskSearch" placeholder="Search tasks, tags, descriptions…"></div>
+          <button class="chip-filter" id="filtersToggle"><i class="ti ti-filter"></i>Filters</button>
+        </div>
+
+        <div class="filters-row" id="filtersRow" style="display:none">
+          <div class="f-group"><span class="f-label">Priority</span>
+            <button class="pchip" data-p="low">Low</button>
+            <button class="pchip" data-p="medium">Medium</button>
+            <button class="pchip" data-p="high">High</button>
+          </div>
+          <div class="f-group"><span class="f-label">Status</span>
+            <button class="pchip" data-s="todo">To Do</button>
+            <button class="pchip" data-s="inprogress">In Progress</button>
+            <button class="pchip" data-s="done">Done</button>
+          </div>
+          <div class="f-group"><span class="f-label">Due</span>
+            <button class="pchip" data-d="overdue">Overdue</button>
+            <button class="pchip" data-d="today">Today</button>
+            <button class="pchip" data-d="week">This week</button>
+          </div>
+          <span class="clear-link" id="clearFilters">Clear all</span>
+        </div>
+
+        <div id="listView"></div>
+        <div id="kanbanView" class="kanban" style="display:none"></div>
+      </section>
+
+      <!-- ================= CALENDAR PAGE ================= -->
+      <section class="page active" id="page-calendar">
+        <div class="page-head">
+          <div>
+            <h1>Calendar</h1>
+            <p id="calSubtitle">Navigate your tasks and events through time</p>
+          </div>
+          <div class="head-actions">
+            <div class="segctl" id="calViewToggle">
+              <button class="active" data-view="month">Month</button>
+              <button data-view="week">Week</button>
+              <button data-view="day">Day</button>
+            </div>
+            <button class="btn btn-primary" id="quickAddBtn"><i class="ti ti-plus"></i>Quick Add</button>
+          </div>
+        </div>
+
+        <div class="cal-wrap">
+          <div class="cal-main">
+            <div class="cal-toolbar">
+              <div class="cal-nav">
+                <button class="icon-btn" id="calPrev"><i class="ti ti-chevron-left"></i></button>
+                <h2 id="calLabel">June 2026</h2>
+                <button class="icon-btn" id="calNext"><i class="ti ti-chevron-right"></i></button>
+              </div>
+              <button class="btn btn-secondary btn-sm" id="calToday"><i class="ti ti-calendar-event"></i>Today</button>
+            </div>
+
+            <div id="monthView"></div>
+            <div id="weekView" style="display:none"></div>
+            <div id="dayView" style="display:none"></div>
+          </div>
+
+          <div class="cal-side">
+            <div class="side-card">
+              <h4><i class="ti ti-clock-hour-4"></i>Upcoming</h4>
+              <div id="upcomingList"></div>
+            </div>
+            <div class="side-card">
+              <h4><i class="ti ti-palette"></i>Legend</h4>
+              <div class="legend">
+                <span><i style="background:#3B82F6"></i>Work</span>
+                <span><i style="background:#10B981"></i>Personal</span>
+                <span><i style="background:#EC4899"></i>Health</span>
+                <span><i style="background:#F97316"></i>Meeting</span>
+                <span><i style="background:#A855F7"></i>Learning</span>
+                <span><i style="background:#14B8A6"></i>Other</span>
+                <span><i style="background:#EF4444"></i>Task: High</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+<!-- TASK MODAL & EVENT MODAL -->
+<!-- TASK MODAL -->
+<div class="modal-scrim" id="taskModalScrim">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="taskModalTitle">New Task</h3>
+      <button class="icon-btn" id="taskModalClose"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field"><label>Title</label><input type="text" id="f_title" placeholder="What needs to get done?"></div>
+      <div class="field"><label>Description</label><textarea id="f_desc" placeholder="Add more detail…"></textarea></div>
+      <div class="row2">
+        <div class="field"><label>Priority</label>
+          <div class="seg-mini" id="f_priority">
+            <button data-p="low">Low</button><button data-p="medium" class="on">Medium</button><button data-p="high">High</button>
+          </div>
+        </div>
+        <div class="field"><label>Due date</label><input type="date" id="f_due"></div>
+      </div>
+      <div class="field"><label>Status</label>
+        <div class="seg-mini" id="f_status">
+          <button data-s="todo" class="on">To Do</button><button data-s="inprogress">In Progress</button><button data-s="done">Done</button>
+        </div>
+      </div>
+      <div class="field"><label>Tags</label>
+        <div class="tagrow" id="f_tagrow"><input class="tag-input" id="f_tagInput" placeholder="Type a tag and press Enter"></div>
+      </div>
+      <div class="field"><label>Subtasks</label>
+        <div class="sub-list" id="f_subtasks"></div>
+        <div class="sub-add" style="margin-top:8px">
+          <input type="text" id="f_subInput" placeholder="Add a subtask…">
+          <button class="btn btn-secondary btn-sm" id="f_subAdd"><i class="ti ti-plus"></i></button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-secondary" id="deleteTaskBtn" style="display:none"><i class="ti ti-trash"></i>Delete</button>
+      <button class="btn btn-primary" id="saveTaskBtn" style="margin-left:auto"><i class="ti ti-check"></i>Save Task</button>
+    </div>
+  </div>
+</div>
+
+<!-- EVENT QUICK-ADD MODAL -->
+<div class="modal-scrim" id="eventModalScrim">
+  <div class="modal" style="width:420px">
+    <div class="modal-head"><h3>Quick Add Event</h3><button class="icon-btn" id="eventModalClose"><i class="ti ti-x"></i></button></div>
+    <div class="modal-body">
+      <div class="field"><label>Title</label><input type="text" id="e_title" placeholder="Event name"></div>
+      <div class="row2">
+        <div class="field"><label>Date</label><input type="date" id="e_date"></div>
+        <div class="field"><label>Time</label><input type="time" id="e_time"></div>
+      </div>
+      <div class="field"><label>Color</label>
+        <div class="colorpick" id="e_color">
+          <div class="cdot on" data-c="#3B82F6" style="background:#3B82F6"></div>
+          <div class="cdot" data-c="#10B981" style="background:#10B981"></div>
+          <div class="cdot" data-c="#EC4899" style="background:#EC4899"></div>
+          <div class="cdot" data-c="#F97316" style="background:#F97316"></div>
+          <div class="cdot" data-c="#A855F7" style="background:#A855F7"></div>
+          <div class="cdot" data-c="#14B8A6" style="background:#14B8A6"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot"><button class="btn btn-primary" id="saveEventBtn" style="margin-left:auto"><i class="ti ti-check"></i>Add Event</button></div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+/* ============ STATE ============ */
+const PRIO_COLOR = {low:'#3B82F6',medium:'#F59E0B',high:'#EF4444'};
+const todayStr = () => fmtDate(new Date());
+function fmtDate(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function addDays(d,n){const r=new Date(d);r.setDate(r.getDate()+n);return r;}
+const today=new Date();
+
+/* ============ DATA (Step 17, Batch 3 — real Task/CalendarEvent rows) ============
+   Tasks and events are loaded from the JSON API below instead of being
+   hardcoded here; these start empty and are populated by loadData(). */
+let tasks = [];
+let events = [];
+
+/* ── API helpers ─────────────────────────────────────────── */
+function getCsrfToken(){
+  const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+  return match ? match[1] : '';
+}
+async function apiFetch(url, opts){
+  const res = await fetch(url, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCsrfToken(), ...(opts&&opts.headers) },
+  });
+  if(!res.ok) throw new Error('request failed: '+url);
+  return res.json();
+}
+
+async function loadData(){
+  try {
+    const [taskData, eventData] = await Promise.all([
+      apiFetch('{% url "vault:task_list_api" %}'),
+      apiFetch('{% url "vault:event_list_api" %}'),
+    ]);
+    tasks = taskData.tasks;
+    events = eventData.events;
+  } catch(e) {
+    tasks = []; events = [];
+  }
+  renderAll();
+}
+
+let taskFilters = {priority:new Set(),status:new Set(),due:new Set()};
+let taskSearchQ = '';
+let taskView = 'list';
+let editingTaskId = null;
+let editSubtasks = [];
+let editTags = [];
+
+let calView = 'month';
+let calCursor = new Date(today.getFullYear(),today.getMonth(),today.getDate());
+let selectedDay = todayStr();
+let quickAddDate = todayStr();
+
+/* ============ NAV ============ */
+document.querySelectorAll('.nav-item[data-page]').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item[data-page]').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+    const p = el.dataset.page;
+    document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+    document.getElementById('page-'+p).classList.add('active');
+    document.getElementById('topTitle').textContent = p==='tasks'?'Tasks':'Calendar';
+  });
+});
+
+/* ============ TASKS RENDER ============ */
+function isOverdue(t){ return t.due < todayStr() && t.status!=='done'; }
+function matchesFilters(t){
+  if(taskFilters.priority.size && !taskFilters.priority.has(t.priority)) return false;
+  if(taskFilters.status.size && !taskFilters.status.has(t.status)) return false;
+  if(taskFilters.due.size){
+    let ok=false;
+    if(taskFilters.due.has('overdue') && isOverdue(t)) ok=true;
+    if(taskFilters.due.has('today') && t.due===todayStr()) ok=true;
+    if(taskFilters.due.has('week') && t.due>=todayStr() && t.due<=fmtDate(addDays(today,7))) ok=true;
+    if(!ok) return false;
+  }
+  if(taskSearchQ){
+    const q=taskSearchQ.toLowerCase();
+    const hay=(t.title+' '+t.desc+' '+t.tags.join(' ')).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+function subProgress(t){
+  if(!t.subtasks.length) return null;
+  const done=t.subtasks.filter(s=>s.done).length;
+  return {done,total:t.subtasks.length};
+}
+function dueLabel(due){
+  if(due===todayStr()) return 'Today';
+  if(due===fmtDate(addDays(today,1))) return 'Tomorrow';
+  const d=new Date(due+'T00:00:00');
+  return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+}
+
+function renderTasks(){
+  const filtered = tasks.filter(matchesFilters);
+  document.getElementById('taskBadge').textContent = tasks.filter(t=>t.status!=='done').length;
+  const dueToday = tasks.filter(t=>t.due===todayStr() && t.status!=='done').length;
+  document.getElementById('taskSubtitle').textContent = `${tasks.length} tasks · ${dueToday} due today`;
+
+  if(taskView==='list') renderListView(filtered); else renderKanbanView(filtered);
+}
+
+function taskRowHTML(t){
+  const prog=subProgress(t);
+  return `<div class="task-row ${t.status==='done'?'done':''}" data-id="${t.id}">
+    <div class="t-check ${t.status==='done'?'checked':''}" data-action="toggle"><i class="ti ti-check"></i></div>
+    <div class="t-flag ${t.priority}"></div>
+    <div class="t-body">
+      <div class="t-title">${escapeHTML(t.title)}</div>
+      <div class="t-meta">
+        <span class="t-due ${isOverdue(t)?'overdue':''}"><i class="ti ti-calendar-event"></i>${dueLabel(t.due)}</span>
+        ${prog?`<span class="t-sub"><i class="ti ti-list-check"></i>${prog.done}/${prog.total}</span>`:''}
+        <span class="t-tags">${t.tags.map(tg=>`<span class="t-tag">${escapeHTML(tg)}</span>`).join('')}</span>
+      </div>
+    </div>
+    <div class="t-actions">
+      <button class="icon-btn" data-action="delete"><i class="ti ti-trash"></i></button>
+    </div>
+  </div>`;
+}
+
+function renderListView(list){
+  document.getElementById('listView').style.display='block';
+  document.getElementById('kanbanView').style.display='none';
+  const groups=[['todo','To Do'],['inprogress','In Progress'],['done','Done']];
+  let html='';
+  groups.forEach(([key,label])=>{
+    const items=list.filter(t=>t.status===key);
+    if(!items.length) return;
+    html+=`<div class="task-section"><h3>${label}<span class="cnt">${items.length}</span></h3>${items.map(taskRowHTML).join('')}</div>`;
+  });
+  if(!html) html='<div class="empty-mini" style="padding:40px 0">No tasks match your filters.</div>';
+  document.getElementById('listView').innerHTML=html;
+  bindRowEvents();
+}
+
+function kanbanCardHTML(t){
+  const prog=subProgress(t);
+  return `<div class="kcard ${t.priority}" draggable="true" data-id="${t.id}">
+    <div class="kt">${escapeHTML(t.title)}</div>
+    <div class="kmeta">
+      <span class="t-due ${isOverdue(t)?'overdue':''}"><i class="ti ti-calendar-event"></i>${dueLabel(t.due)}</span>
+      ${t.tags.slice(0,2).map(tg=>`<span class="t-tag">${escapeHTML(tg)}</span>`).join('')}
+    </div>
+    ${prog?`<div class="kprog"><i style="width:${prog.done/prog.total*100}%"></i></div>`:''}
+  </div>`;
+}
+
+function renderKanbanView(list){
+  document.getElementById('listView').style.display='none';
+  const kv=document.getElementById('kanbanView');
+  kv.style.display='grid';
+  const cols=[['todo','To Do','todo'],['inprogress','In Progress','inprogress'],['done','Done','done']];
+  kv.innerHTML = cols.map(([key,label,dotcls])=>{
+    const items=list.filter(t=>t.status===key);
+    return `<div class="kcol">
+      <div class="kcol-head"><h4><span class="kdot ${dotcls}"></span>${label}</h4><span class="cnt">${items.length}</span></div>
+      <div class="kdrop" data-status="${key}">${items.map(kanbanCardHTML).join('')}</div>
+    </div>`;
+  }).join('');
+  bindKanbanEvents();
+}
+
+function bindRowEvents(){
+  document.querySelectorAll('.task-row').forEach(row=>{
+    const id=+row.dataset.id;
+    row.addEventListener('click',e=>{
+      if(e.target.closest('[data-action="toggle"]')){
+        const t=tasks.find(x=>x.id===id);
+        const newStatus = t.status==='done'?'todo':'done';
+        t.status = newStatus; renderAll(); // optimistic
+        apiFetch(`/productivity/api/tasks/${id}/status/`, {method:'POST', body:JSON.stringify({status:newStatus})})
+          .catch(()=>{ t.status = newStatus==='done'?'todo':'done'; renderAll(); });
+        return;
+      }
+      if(e.target.closest('[data-action="delete"]')){
+        tasks=tasks.filter(x=>x.id!==id); renderAll();
+        apiFetch(`/productivity/api/tasks/${id}/delete/`, {method:'POST'}).catch(()=>loadData());
+        return;
+      }
+      openTaskModal(id);
+    });
+  });
+}
+
+function bindKanbanEvents(){
+  document.querySelectorAll('.kcard').forEach(card=>{
+    card.addEventListener('dragstart',e=>{ card.classList.add('dragging'); e.dataTransfer.setData('text/plain',card.dataset.id); });
+    card.addEventListener('dragend',()=>card.classList.remove('dragging'));
+    card.addEventListener('click',()=>openTaskModal(+card.dataset.id));
+  });
+  document.querySelectorAll('.kdrop').forEach(drop=>{
+    drop.addEventListener('dragover',e=>{ e.preventDefault(); drop.classList.add('dragover'); });
+    drop.addEventListener('dragleave',()=>drop.classList.remove('dragover'));
+    drop.addEventListener('drop',e=>{
+      e.preventDefault(); drop.classList.remove('dragover');
+      const id=+e.dataTransfer.getData('text/plain');
+      const t=tasks.find(x=>x.id===id);
+      if(t){
+        const prevStatus=t.status;
+        t.status=drop.dataset.status; renderAll(); // optimistic
+        apiFetch(`/productivity/api/tasks/${id}/status/`, {method:'POST', body:JSON.stringify({status:t.status})})
+          .catch(()=>{ t.status=prevStatus; renderAll(); });
+      }
+    });
+  });
+}
+
+function escapeHTML(s){ const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML; }
+
+/* view toggle */
+document.getElementById('taskViewToggle').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  document.querySelectorAll('#taskViewToggle button').forEach(x=>x.classList.remove('active'));
+  b.classList.add('active'); taskView=b.dataset.view; renderTasks();
+});
+document.getElementById('taskSearch').addEventListener('input',e=>{ taskSearchQ=e.target.value; renderTasks(); });
+document.getElementById('filtersToggle').addEventListener('click',()=>{
+  const row=document.getElementById('filtersRow');
+  row.style.display = row.style.display==='none'?'flex':'none';
+});
+document.querySelectorAll('.pchip[data-p]').forEach(b=>b.addEventListener('click',()=>{
+  b.classList.toggle('on'); const p=b.dataset.p;
+  taskFilters.priority.has(p)?taskFilters.priority.delete(p):taskFilters.priority.add(p); renderTasks();
+}));
+document.querySelectorAll('.pchip[data-s]').forEach(b=>b.addEventListener('click',()=>{
+  b.classList.toggle('on'); const s=b.dataset.s;
+  taskFilters.status.has(s)?taskFilters.status.delete(s):taskFilters.status.add(s); renderTasks();
+}));
+document.querySelectorAll('.pchip[data-d]').forEach(b=>b.addEventListener('click',()=>{
+  b.classList.toggle('on'); const d=b.dataset.d;
+  taskFilters.due.has(d)?taskFilters.due.delete(d):taskFilters.due.add(d); renderTasks();
+}));
+document.getElementById('clearFilters').addEventListener('click',()=>{
+  taskFilters={priority:new Set(),status:new Set(),due:new Set()};
+  document.querySelectorAll('.pchip').forEach(b=>b.classList.remove('on'));
+  renderTasks();
+});
+
+/* ============ TASK MODAL ============ */
+function openTaskModal(id){
+  editingTaskId=id;
+  const m=document.getElementById('taskModalScrim');
+  document.getElementById('taskModalTitle').textContent = id? 'Edit Task':'New Task';
+  document.getElementById('deleteTaskBtn').style.display = id? 'inline-flex':'none';
+  if(id){
+    const t=tasks.find(x=>x.id===id);
+    document.getElementById('f_title').value=t.title;
+    document.getElementById('f_desc').value=t.desc;
+    document.getElementById('f_due').value=t.due;
+    setSeg('f_priority','data-p',t.priority);
+    setSeg('f_status','data-s',t.status);
+    editSubtasks = t.subtasks.map(s=>({...s}));
+    editTags = [...t.tags];
+  } else {
+    document.getElementById('f_title').value='';
+    document.getElementById('f_desc').value='';
+    document.getElementById('f_due').value=todayStr();
+    setSeg('f_priority','data-p','medium');
+    setSeg('f_status','data-s','todo');
+    editSubtasks=[]; editTags=[];
+  }
+  renderSubtasksEditor(); renderTagsEditor();
+  m.classList.add('show');
+}
+function setSeg(containerId,attr,val){
+  document.querySelectorAll('#'+containerId+' button').forEach(b=>{
+    b.classList.toggle('on', b.getAttribute(attr)===val);
+  });
+}
+function getSeg(containerId,attr){
+  return document.querySelector('#'+containerId+' button.on').getAttribute(attr);
+}
+document.getElementById('f_priority').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return; setSeg('f_priority','data-p',b.dataset.p); });
+document.getElementById('f_status').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b)return; setSeg('f_status','data-s',b.dataset.s); });
+
+function renderSubtasksEditor(){
+  document.getElementById('f_subtasks').innerHTML = editSubtasks.map((s,i)=>`
+    <div class="sub-item">
+      <input type="checkbox" ${s.done?'checked':''} data-i="${i}">
+      <span class="${s.done?'done':''}">${escapeHTML(s.text)}</span>
+      <button class="icon-btn" data-del="${i}" style="width:24px;height:24px"><i class="ti ti-x" style="font-size:13px"></i></button>
+    </div>`).join('');
+  document.querySelectorAll('#f_subtasks input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change',()=>{ editSubtasks[+cb.dataset.i].done=cb.checked; renderSubtasksEditor(); });
+  });
+  document.querySelectorAll('#f_subtasks [data-del]').forEach(b=>{
+    b.addEventListener('click',()=>{ editSubtasks.splice(+b.dataset.del,1); renderSubtasksEditor(); });
+  });
+}
+document.getElementById('f_subAdd').addEventListener('click',addSub);
+document.getElementById('f_subInput').addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); addSub(); } });
+function addSub(){
+  const inp=document.getElementById('f_subInput');
+  if(inp.value.trim()){ editSubtasks.push({id:Date.now(),text:inp.value.trim(),done:false}); inp.value=''; renderSubtasksEditor(); }
+}
+
+function renderTagsEditor(){
+  const row=document.getElementById('f_tagrow');
+  const input=document.getElementById('f_tagInput');
+  row.innerHTML = editTags.map((tg,i)=>`<span class="t-tag">${escapeHTML(tg)}<i class="ti ti-x" data-tagdel="${i}"></i></span>`).join('');
+  row.appendChild(input); input.value='';
+  row.querySelectorAll('[data-tagdel]').forEach(x=>x.addEventListener('click',()=>{ editTags.splice(+x.dataset.tagdel,1); renderTagsEditor(); }));
+}
+document.getElementById('f_tagInput').addEventListener('keydown',e=>{
+  if(e.key==='Enter' && e.target.value.trim()){ e.preventDefault(); editTags.push(e.target.value.trim()); renderTagsEditor(); }
+});
+
+document.getElementById('newTaskBtn').addEventListener('click',()=>openTaskModal(null));
+document.getElementById('taskModalClose').addEventListener('click',()=>document.getElementById('taskModalScrim').classList.remove('show'));
+document.getElementById('taskModalScrim').addEventListener('click',e=>{ if(e.target.id==='taskModalScrim') e.target.classList.remove('show'); });
+
+document.getElementById('saveTaskBtn').addEventListener('click',async()=>{
+  const title=document.getElementById('f_title').value.trim();
+  if(!title){ document.getElementById('f_title').focus(); return; }
+  const data={
+    title, desc:document.getElementById('f_desc').value.trim(),
+    priority:getSeg('f_priority','data-p'), status:getSeg('f_status','data-s'),
+    due:document.getElementById('f_due').value||todayStr(),
+    tags:[...editTags], subtasks:editSubtasks.map(s=>({...s}))
+  };
+  const btn=document.getElementById('saveTaskBtn');
+  btn.disabled=true;
+  try{
+    const url = editingTaskId ? `/productivity/api/tasks/${editingTaskId}/save/` : '{% url "vault:task_create_api" %}';
+    const {task} = await apiFetch(url, {method:'POST', body:JSON.stringify(data)});
+    if(editingTaskId){
+      const i=tasks.findIndex(x=>x.id===editingTaskId); tasks[i]=task;
+    } else {
+      tasks.push(task);
+    }
+    document.getElementById('taskModalScrim').classList.remove('show');
+    renderAll();
+  } catch(e) {
+    alert('Could not save the task — please try again.');
+  } finally { btn.disabled=false; }
+});
+document.getElementById('deleteTaskBtn').addEventListener('click',async()=>{
+  const id=editingTaskId;
+  try{ await apiFetch(`/productivity/api/tasks/${id}/delete/`, {method:'POST'}); }catch(e){}
+  tasks=tasks.filter(t=>t.id!==id);
+  document.getElementById('taskModalScrim').classList.remove('show');
+  renderAll();
+});
+
+/* ============ CALENDAR ============ */
+function eventsForDate(dateStr){
+  const evs = events.filter(e=>e.date===dateStr).map(e=>({title:e.title,color:e.color,time:e.time,kind:'event',ref:e}));
+  const tks = tasks.filter(t=>t.due===dateStr).map(t=>({title:t.title,color:PRIO_COLOR[t.priority],time:null,kind:'task',ref:t}));
+  return [...evs,...tks].sort((a,b)=> (a.time||'99:99').localeCompare(b.time||'99:99'));
+}
+
+function renderCalendar(){
+  document.getElementById('monthView').style.display = calView==='month'?'block':'none';
+  document.getElementById('weekView').style.display = calView==='week'?'block':'none';
+  document.getElementById('dayView').style.display = calView==='day'?'block':'none';
+  if(calView==='month') renderMonth();
+  else if(calView==='week') renderWeek();
+  else renderDay();
+  renderUpcoming();
+}
+
+function renderMonth(){
+  const y=calCursor.getFullYear(), m=calCursor.getMonth();
+  document.getElementById('calLabel').textContent = calCursor.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const firstDow = new Date(y,m,1).getDay();
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  const daysInPrev = new Date(y,m,0).getDate();
+  const cells=[];
+  for(let i=firstDow-1;i>=0;i--) cells.push({day:daysInPrev-i, outside:true, date:new Date(y,m-1,daysInPrev-i)});
+  for(let d=1; d<=daysInMonth; d++) cells.push({day:d, outside:false, date:new Date(y,m,d)});
+  while(cells.length%7!==0 || cells.length<42) cells.push({day:cells.length-firstDow-daysInMonth+1, outside:true, date:new Date(y,m+1,cells.length-firstDow-daysInMonth+1)});
+
+  const dow=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  let html = dow.map(d=>`<div class="dow">${d}</div>`).join('');
+  let monthEventCount=0;
+  cells.forEach(c=>{
+    const ds=fmtDate(c.date);
+    const evs=eventsForDate(ds);
+    if(!c.outside) monthEventCount+=evs.length;
+    const isToday = ds===todayStr();
+    const isSel = ds===selectedDay && !c.outside;
+    html+=`<div class="day-cell ${c.outside?'outside':''} ${isToday?'today':''} ${isSel?'selected':''}" data-date="${ds}">
+      <div class="day-num">${c.day}</div>
+      ${evs.slice(0,3).map(e=>`<div class="ev-chip" style="background:${e.color}">${e.kind==='task'?'<i class=\"ti ti-checklist\"></i>':''}${escapeHTML(e.title)}</div>`).join('')}
+      ${evs.length>3?`<div class="ev-more">+${evs.length-3} more</div>`:''}
+      <div class="day-add" data-add="${ds}"><i class="ti ti-plus"></i></div>
+    </div>`;
+  });
+  document.getElementById('calSubtitle').textContent = `${monthEventCount} items this month`;
+  document.getElementById('monthView').innerHTML = `<div class="month-grid">${html}</div>`;
+  document.querySelectorAll('#monthView .day-cell').forEach(cell=>{
+    cell.addEventListener('click',e=>{
+      if(e.target.closest('[data-add]')){ openEventModal(cell.dataset.date); return; }
+      selectedDay=cell.dataset.date; calView='day'; calCursor=new Date(selectedDay+'T00:00:00');
+      setCalSeg('day'); renderCalendar();
+    });
+  });
+}
+
+function renderWeek(){
+  const start = addDays(calCursor, -calCursor.getDay());
+  document.getElementById('calLabel').textContent = `${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${addDays(start,6).toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
+  const days=[...Array(7)].map((_,i)=>addDays(start,i));
+  const hours=[...Array(15)].map((_,i)=>i+7); // 7am - 9pm
+  let head = `<div class="wh" style="border-left:none"></div>` + days.map(d=>{
+    const ds=fmtDate(d), t=ds===todayStr();
+    return `<div class="wh ${t?'today':''}">${d.toLocaleDateString('en-US',{weekday:'short'})}<small>${d.getDate()}</small></div>`;
+  }).join('');
+  let body='';
+  hours.forEach(h=>{
+    body+=`<div class="hour-label">${h%12||12}${h<12?'am':'pm'}</div>`;
+    days.forEach(d=>{
+      const ds=fmtDate(d);
+      const evs=eventsForDate(ds).filter(e=>{
+        if(e.kind==='task') return h===7;
+        const eh=e.time? +e.time.split(':')[0] : 7;
+        return eh===h;
+      });
+      body+=`<div class="week-cell" data-date="${ds}">${evs.map(e=>`<div class="wevent" style="background:${e.color}">${e.kind==='task'?'☑ ':''}${escapeHTML(e.title)}</div>`).join('')}</div>`;
+    });
+  });
+  document.getElementById('weekView').innerHTML = `<div class="week-grid">${head}${body}</div>`;
+  document.querySelectorAll('#weekView .week-cell').forEach(c=>c.addEventListener('click',()=>openEventModal(c.dataset.date)));
+}
+
+function renderDay(){
+  const ds=fmtDate(calCursor);
+  document.getElementById('calLabel').textContent = calCursor.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  const evs = eventsForDate(ds);
+  const hours=[...Array(16)].map((_,i)=>i+6); // 6am-9pm
+  let html='';
+  hours.forEach(h=>{
+    const hEvs = evs.filter(e=> e.kind==='event' ? (+ (e.time||'6:0').split(':')[0]===h) : h===6 );
+    html+=`<div class="hr-row"><div class="hl">${h%12||12}${h<12?'am':'pm'}</div><div class="hbody">${hEvs.map(e=>`<span class="devent" style="background:${e.color}">${e.kind==='task'?'<i class=\"ti ti-checklist\"></i>':''}${escapeHTML(e.title)}${e.time?' · '+e.time:''}</span>`).join('')}</div></div>`;
+  });
+  document.getElementById('dayView').innerHTML = `<div class="day-list">${html}</div>`;
+}
+
+function setCalSeg(view){
+  document.querySelectorAll('#calViewToggle button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+}
+document.getElementById('calViewToggle').addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  calView=b.dataset.view; setCalSeg(calView); renderCalendar();
+});
+document.getElementById('calPrev').addEventListener('click',()=>{
+  if(calView==='month') calCursor=new Date(calCursor.getFullYear(),calCursor.getMonth()-1,1);
+  else if(calView==='week') calCursor=addDays(calCursor,-7);
+  else calCursor=addDays(calCursor,-1);
+  renderCalendar();
+});
+document.getElementById('calNext').addEventListener('click',()=>{
+  if(calView==='month') calCursor=new Date(calCursor.getFullYear(),calCursor.getMonth()+1,1);
+  else if(calView==='week') calCursor=addDays(calCursor,7);
+  else calCursor=addDays(calCursor,1);
+  renderCalendar();
+});
+document.getElementById('calToday').addEventListener('click',()=>{ calCursor=new Date(today); selectedDay=todayStr(); renderCalendar(); });
+
+function renderUpcoming(){
+  const upcoming=[];
+  events.forEach(e=>{ if(e.date>=todayStr()) upcoming.push({title:e.title,date:e.date,color:e.color,time:e.time}); });
+  tasks.forEach(t=>{ if(t.due>=todayStr() && t.status!=='done') upcoming.push({title:t.title,date:t.due,color:PRIO_COLOR[t.priority],time:null}); });
+  upcoming.sort((a,b)=>a.date.localeCompare(b.date) || (a.time||'').localeCompare(b.time||''));
+  const top=upcoming.slice(0,6);
+  document.getElementById('upcomingList').innerHTML = top.length? top.map(u=>`
+    <div class="up-item"><div class="up-dot" style="background:${u.color}"></div>
+      <div><div class="up-title">${escapeHTML(u.title)}</div><div class="up-date">${dueLabel(u.date)}${u.time?' · '+u.time:''}</div></div>
+    </div>`).join('') : `<div class="empty-mini">Nothing coming up</div>`;
+}
+
+/* ============ EVENT MODAL ============ */
+function openEventModal(dateStr){
+  quickAddDate=dateStr||todayStr();
+  document.getElementById('e_title').value='';
+  document.getElementById('e_date').value=quickAddDate;
+  document.getElementById('e_time').value='09:00';
+  document.querySelectorAll('#e_color .cdot').forEach((c,i)=>c.classList.toggle('on', i===0));
+  document.getElementById('eventModalScrim').classList.add('show');
+}
+document.getElementById('quickAddBtn').addEventListener('click',()=>openEventModal(selectedDay));
+document.getElementById('eventModalClose').addEventListener('click',()=>document.getElementById('eventModalScrim').classList.remove('show'));
+document.getElementById('eventModalScrim').addEventListener('click',e=>{ if(e.target.id==='eventModalScrim') e.target.classList.remove('show'); });
+document.getElementById('e_color').addEventListener('click',e=>{
+  const c=e.target.closest('.cdot'); if(!c) return;
+  document.querySelectorAll('#e_color .cdot').forEach(x=>x.classList.remove('on')); c.classList.add('on');
+});
+document.getElementById('saveEventBtn').addEventListener('click',async()=>{
+  const title=document.getElementById('e_title').value.trim();
+  if(!title){ document.getElementById('e_title').focus(); return; }
+  const color=document.querySelector('#e_color .cdot.on').dataset.c;
+  const data={ title, date:document.getElementById('e_date').value||todayStr(), time:document.getElementById('e_time').value, color };
+  const btn=document.getElementById('saveEventBtn');
+  btn.disabled=true;
+  try{
+    const {event} = await apiFetch('{% url "vault:event_create_api" %}', {method:'POST', body:JSON.stringify(data)});
+    events.push(event);
+    document.getElementById('eventModalScrim').classList.remove('show');
+    renderCalendar();
+  } catch(e) {
+    alert('Could not save the event — please try again.');
+  } finally { btn.disabled=false; }
+});
+
+/* global capture button -> shortcut to quick add event */
+document.getElementById('globalCapture').addEventListener('click',()=>{
+  const activePage = document.querySelector('.page.active').id;
+  if(activePage==='page-tasks') openTaskModal(null); else openEventModal(selectedDay);
+});
+
+/* ============ INIT ============ */
+function renderAll(){ renderTasks(); renderCalendar(); }
+loadData();
+
+/* ── Respect ?tab=tasks link from other pages' sidebar ──── */
+(function(){
+  const tab = new URLSearchParams(window.location.search).get('tab');
+  if (tab === 'tasks') {
+    const navTasks = document.querySelector('.nav-item[data-page="tasks"]');
+    if (navTasks) navTasks.click();
+  }
+})();
+</script>
+{% endblock %}

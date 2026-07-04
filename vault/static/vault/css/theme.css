@@ -1,0 +1,131 @@
+/* ============================================================
+   MemoryVault AI — Core Theme stylesheet
+   Contains CSS design tokens, scrollbars, base resets, 
+   light/dark modes and compact view.
+   ============================================================ */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #0B0C15;
+  --shell: #0E1020;
+  --surface: #12132A;
+  --raised: #181A33;
+  --active: #1C1740;
+  --bs: #21233F;
+  --bd: #2A2D4D;
+  --tp: #F8FAFC;
+  --ts: #A1A8C3;
+  --tt: #6B7290;
+  --td: #454966;
+  --a4: #9F75F0;
+  --a5: #8B5CF6;
+  --a6: #7C3AED;
+  --a7: #6320D6;
+  --ok: #22C55E;
+  --err: #EF4444;
+  --warn: #F59E0B;
+  
+  /* Type specific colors */
+  --blue: #3B82F6;
+  --pink: #EC4899;
+  --green: #10B981;
+  --orange: #F97316;
+  --purple: #A855F7;
+  --teal: #14B8A6;
+  --amber: #F59E0B;
+  
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+  
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.4);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.35);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.45);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.55);
+  --shadow-glow-accent: 0 0 32px rgba(124,58,237,0.35);
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--tp);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--bd); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--tt); }
+
+/* Compact mode styling configuration overrides */
+body.compact {
+  font-size: 13px;
+}
+body.compact .nav-item {
+  height: 34px !important;
+}
+body.compact .topbar {
+  height: 52px !important;
+}
+body.compact .sidebar-logo {
+  height: 52px !important;
+}
+body.compact .content {
+  padding: 16px 20px !important;
+}
+body.compact .memory-card {
+  padding: 9px 12px !important;
+}
+
+/* Light mode overrides */
+body.light-theme {
+  --bg: #F8FAFC;
+  --shell: #FFFFFF;
+  --surface: #F1F5F9;
+  --raised: #E2E8F0;
+  --active: #EEF2F6;
+  --bs: #E2E8F0;
+  --bd: #CBD5E1;
+  --tp: #0F172A;
+  --ts: #334155;
+  --tt: #64748B;
+  --td: #94A3B8;
+  --a4: #7C3AED;
+  --a5: #8B5CF6;
+  --a6: #7C3AED;
+  --a7: #6D28D9;
+}
+body.light-theme .ai-card {
+  box-shadow: 0 0 24px rgba(124,58,237,.10) !important;
+}
+body.light-theme .ask-btn {
+  background: var(--shell);
+}
+body.light-theme .segctl {
+  background: var(--raised);
+}
+body.light-theme .segctl button.active {
+  background: var(--shell);
+  color: var(--a6);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}

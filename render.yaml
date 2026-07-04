@@ -1,0 +1,64 @@
+# Render Blueprint — Infrastructure as Code for MemoryVault.
+#
+# This file is optional: you can also create the web service and database
+# manually in the Render dashboard by following the steps in README.md.
+# If you'd rather use a Blueprint, connect this repo at
+# https://dashboard.render.com/blueprints and Render will provision both
+# resources defined below from this file.
+#
+# Reference: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: memoryvault
+    runtime: python
+    plan: starter          # Change to "free" for a no-cost instance (spins down when idle)
+    region: oregon
+    branch: main            # Change if your default branch has a different name
+    buildCommand: ./build.sh
+    startCommand: gunicorn memoryvault_project.wsgi:application --log-file -
+    healthCheckPath: /
+    autoDeployTrigger: commit
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3        # Keep in sync with .python-version
+      - key: DEBUG
+        value: "False"
+      - key: SECRET_KEY
+        generateValue: true  # Render generates a random 256-bit value on first sync
+      - key: ALLOWED_HOSTS
+        fromService:              # Auto-fills with this service's *.onrender.com hostname
+          name: memoryvault
+          type: web
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
+        # If you add a custom domain later, edit this env var in the Render
+        # dashboard to a comma-separated list that includes it, e.g.:
+        # memoryvault.onrender.com,app.example.com
+      - key: SECURE_SSL_REDIRECT
+        value: "True"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: memoryvault-db
+          property: connectionString
+      - key: ANTHROPIC_API_KEY
+        sync: false          # Optional — prompted for in the Render dashboard, powers the AI Assistant feature
+
+    # Uploaded avatars and memory attachments (vault/models.py: Profile.avatar,
+    # Memory.media_file) are written to MEDIA_ROOT on local disk. Render's
+    # default web service disk is EPHEMERAL — files written there are lost on
+    # every deploy and on any restart/relocation of the instance. Uncomment the
+    # block below to attach a persistent disk at the app's MEDIA_ROOT so
+    # uploads survive deploys and restarts. Note: attaching a disk requires a
+    # paid plan and prevents horizontal scaling (multiple instances can't
+    # safely share one disk). For a scalable, multi-instance setup, migrate
+    # media storage to an external object store (e.g. S3-compatible storage)
+    # instead — that is a code change beyond the scope of this audit pass.
+    # disk:
+    #   name: memoryvault-media
+    #   mountPath: /opt/render/project/src/media
+    #   sizeGB: 1
+
+databases:
+  - name: memoryvault-db
+    plan: free              # Change to a paid plan before going live — the free plan expires after 30 days
+    region: oregon

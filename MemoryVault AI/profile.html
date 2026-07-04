@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>MemoryVault AI — Profile</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0B0C15; --shell:#0E1020; --surface:#12132A; --raised:#181A33; --active:#1C1740;
+  --bs:#21233F; --bd:#2A2D4D; --tp:#F8FAFC; --ts:#A1A8C3; --tt:#6B7290; --td:#454966;
+  --a4:#9F75F0; --a5:#8B5CF6; --a6:#7C3AED; --a7:#6320D6;
+  --ok:#22C55E; --err:#EF4444; --warn:#F59E0B;
+  --blue:#3B82F6; --pink:#EC4899; --green:#10B981; --orange:#F97316; --purple:#A855F7; --teal:#14B8A6; --amber:#F59E0B;
+  --gold:#FBBF24;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--tp);font-size:14px;line-height:1.5;overflow:hidden}
+.app{display:flex;height:100vh;width:100vw}
+/* ── SIDEBAR (shared) ───────────────────────────── */
+.sidebar{width:240px;min-width:240px;background:var(--shell);border-right:1px solid var(--bs);display:flex;flex-direction:column;transition:width .3s cubic-bezier(.16,1,.3,1),min-width .3s cubic-bezier(.16,1,.3,1);overflow:hidden;position:relative;z-index:10;flex-shrink:0}
+.sidebar.collapsed{width:64px;min-width:64px}
+.sidebar-logo{padding:16px 14px;display:flex;align-items:center;gap:10px;height:64px;border-bottom:1px solid var(--bs);flex-shrink:0}
+.logo-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#722CE4,#5B21B6);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-text{overflow:hidden;white-space:nowrap;transition:opacity .25s,width .25s}
+.logo-text strong{display:block;font-size:14px;font-weight:700;color:var(--tp)}
+.logo-text span{font-size:10px;font-weight:500;color:var(--tt);letter-spacing:.06em;text-transform:uppercase}
+.sidebar-search{margin:12px 10px 4px;position:relative;flex-shrink:0}
+.sidebar-search input{width:100%;background:var(--surface);border:1px solid var(--bd);border-radius:8px;padding:7px 36px 7px 32px;font-size:13px;color:var(--ts);font-family:inherit;outline:none;transition:border-color .15s,color .15s}
+.sidebar-search input:focus{border-color:var(--a6);color:var(--tp)}
+.sidebar-search input::placeholder{color:var(--tt)}
+.sidebar-search .s-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--tt);font-size:15px;pointer-events:none}
+.sidebar-search .kbd{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--tt);background:var(--raised);border:1px solid var(--bs);border-radius:4px;padding:1px 4px;transition:opacity .25s}
+.nav-section{padding:14px 10px 4px;flex-shrink:0}
+.nav-label{font-size:10px;font-weight:600;color:var(--tt);letter-spacing:.08em;text-transform:uppercase;padding:0 4px 6px;white-space:nowrap;overflow:hidden;transition:opacity .25s}
+.nav-item{display:flex;align-items:center;gap:10px;padding:0 8px;height:38px;border-radius:8px;cursor:pointer;color:var(--ts);font-size:13px;font-weight:500;transition:background .15s,color .15s;white-space:nowrap;position:relative;overflow:hidden;user-select:none;text-decoration:none}
+.nav-item:hover{background:var(--surface);color:var(--tp)}
+.nav-item.active{background:var(--active);color:var(--a4)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:6px;bottom:6px;width:3px;background:var(--a6);border-radius:0 2px 2px 0}
+.nav-item .nav-icon{width:18px;height:18px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px}
+.nav-text{overflow:hidden;white-space:nowrap;transition:opacity .2s,max-width .3s;max-width:200px}
+.sidebar.collapsed .nav-text,.sidebar.collapsed .logo-text,.sidebar.collapsed .sidebar-search .kbd,.sidebar.collapsed .nav-label,.sidebar.collapsed .ai-desc{opacity:0;max-width:0;overflow:hidden;pointer-events:none}
+.sidebar.collapsed .sidebar-search input{padding-left:10px;color:transparent}
+.sidebar.collapsed .sidebar-search input::placeholder{color:transparent}
+.sidebar.collapsed .nav-item{justify-content:center;padding:0}
+.sidebar.collapsed .nav-item.active::before{display:none}
+.sidebar.collapsed .ai-card{padding:12px 0;justify-content:center}
+.sidebar-footer{margin-top:auto;padding:10px;border-top:1px solid var(--bs);flex-shrink:0}
+.ai-card{background:var(--raised);border:1px solid var(--bs);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px;margin-bottom:8px;transition:padding .3s}
+.ai-dot-wrap{position:relative;width:8px;height:8px;flex-shrink:0}
+.ai-dot{width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.ai-dot::after{content:'';position:absolute;inset:-3px;border-radius:50%;background:rgba(34,197,94,.25);animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.8);opacity:0}}
+.ai-text strong{font-size:12px;font-weight:600;color:var(--tp);white-space:nowrap}
+.ai-text small{font-size:11px;color:var(--tt);display:block;line-height:1.3;white-space:nowrap;overflow:hidden;transition:opacity .2s,max-height .3s;max-height:30px}
+.collapse-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:34px;border-radius:7px;cursor:pointer;color:var(--tt);font-size:13px;border:none;background:transparent;font-family:inherit;transition:background .15s,color .15s}
+.collapse-btn:hover{background:var(--surface);color:var(--tp)}
+.collapse-icon{transition:transform .3s cubic-bezier(.16,1,.3,1);font-size:18px}
+.sidebar.collapsed .collapse-icon{transform:rotate(180deg)}
+/* ── MAIN/TOPBAR (shared) ───────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{height:64px;background:var(--shell);border-bottom:1px solid var(--bs);display:flex;align-items:center;padding:0 20px;gap:12px;flex-shrink:0;position:sticky;top:0;z-index:5}
+.topbar-title{font-size:17px;font-weight:700;color:var(--tp);flex:none}
+.topbar-search{flex:1;max-width:260px;margin-left:auto;position:relative}
+.topbar-search input{width:100%;background:var(--surface);border:1px solid var(--bd);border-radius:20px;padding:7px 36px 7px 14px;font-size:13px;color:var(--ts);font-family:inherit;outline:none;transition:border-color .15s,color .15s}
+.topbar-search input:focus{border-color:var(--a6);color:var(--tp)}
+.topbar-search input::placeholder{color:var(--tt)}
+.topbar-search .kbd{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:10px;color:var(--tt);background:var(--raised);border:1px solid var(--bs);border-radius:4px;padding:1px 4px}
+.capture-btn{display:flex;align-items:center;gap:6px;padding:8px 14px;background:linear-gradient(135deg,#722CE4,#5B21B6);border:none;border-radius:8px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .1s;white-space:nowrap}
+.capture-btn:hover{opacity:.9}
+.capture-btn:active{transform:scale(.97)}
+.icon-btn{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;color:var(--ts);font-size:18px;transition:background .15s,color .15s;position:relative;flex-shrink:0}
+.icon-btn:hover{background:var(--surface);color:var(--tp)}
+.notif-dot{position:absolute;top:7px;right:7px;width:6px;height:6px;background:var(--err);border-radius:50%;border:1.5px solid var(--shell)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--a6);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0;border:2px solid var(--bs);transition:border-color .15s;user-select:none}
+.avatar:hover{border-color:var(--a5)}
+.content{flex:1;overflow-y:auto;padding:24px;display:flex;flex-direction:column;gap:20px}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-track{background:transparent}
+.content::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.btn{display:inline-flex;align-items:center;gap:6px;height:38px;padding:0 16px;border-radius:10px;font-size:13.5px;font-weight:600;border:none;cursor:pointer;font-family:inherit;white-space:nowrap;transition:filter .15s,transform .1s,box-shadow .15s}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:linear-gradient(135deg,#722CE4,#5B21B6);color:#fff}
+.btn-primary:hover{filter:brightness(1.08);box-shadow:0 0 24px rgba(124,58,237,.35)}
+.btn-secondary{background:var(--raised);color:var(--tp);border:1px solid var(--bd)}
+.btn-secondary:hover{border-color:var(--a6)}
+.btn-destructive{background:var(--err);color:#fff}
+.btn-destructive:hover{filter:brightness(1.1)}
+.btn-outline-destructive{background:transparent;color:var(--err);border:1px solid rgba(239,68,68,.4)}
+.btn-outline-destructive:hover{background:rgba(239,68,68,.1)}
+.btn-ghost{background:transparent;color:var(--ts);border:1px solid transparent}
+.btn-ghost:hover{background:var(--surface);color:var(--tp)}
+.btn-sm{height:32px;padding:0 12px;font-size:12.5px}
+/* ── Page header ─────────────────────────────────── */
+.page-header{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.page-header h1{font-size:24px;font-weight:700;color:var(--tp);margin-bottom:4px}
+.page-header p{font-size:13.5px;color:var(--ts)}
+/* ── Segmented tab control (page sub-nav) ─────────── */
+.seg-tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--bs);border-radius:11px;padding:4px;width:fit-content;flex-wrap:wrap}
+.seg-tab{display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;color:var(--ts);cursor:pointer;background:transparent;border:none;font-family:inherit;transition:background .15s,color .15s;white-space:nowrap}
+.seg-tab:hover{color:var(--tp)}
+.seg-tab.active{background:var(--active);color:var(--a4)}
+.tab-panel{display:none;animation:fadeUp .35s ease both}
+.tab-panel.active{display:flex;flex-direction:column;gap:20px}
+/* ── Stat cards (shared with dashboard) ───────────── */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat-card{background:var(--surface);border:1px solid var(--bs);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:10px;transition:border-color .15s,transform .15s;cursor:default;animation:fadeUp .4s ease both}
+.stat-card:hover{border-color:var(--bd);transform:translateY(-1px)}
+.stat-header{display:flex;align-items:center;justify-content:space-between}
+.stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.stat-value{font-size:28px;font-weight:700;color:var(--tp);font-variant-numeric:tabular-nums}
+.stat-label{font-size:12px;color:var(--tt)}
+/* ── Section card (used in Settings) ──────────────── */
+.section-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:4px;animation:fadeUp .4s ease both}
+.section-card.danger{border-color:rgba(239,68,68,.35)}
+.sc-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sc-icon{width:36px;height:36px;border-radius:9px;background:var(--active);color:var(--a4);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.sc-icon.danger{background:rgba(239,68,68,.12);color:var(--err)}
+.sc-title{font-size:15px;font-weight:600;color:var(--tp)}
+.sc-sub{font-size:12px;color:var(--tt);margin-top:1px}
+/* form fields */
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:12.5px;font-weight:500;color:var(--ts)}
+.field input,.field textarea{background:var(--bg);border:1px solid var(--bd);border-radius:10px;padding:10px 14px;font-size:13.5px;color:var(--tp);font-family:inherit;outline:none;transition:border-color .15s}
+.field input:focus,.field textarea:focus{border-color:var(--a6);box-shadow:0 0 0 3px rgba(124,58,237,.2)}
+.field input:disabled{color:var(--tt);cursor:not-allowed}
+.field-hint{font-size:11px;color:var(--td)}
+/* toggle row */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid var(--bs)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{font-size:13.5px;font-weight:500;color:var(--tp)}
+.toggle-desc{font-size:12px;color:var(--tt);margin-top:2px}
+.switch{position:relative;width:44px;height:24px;flex-shrink:0;cursor:pointer}
+.switch input{opacity:0;width:0;height:0}
+.switch-track{position:absolute;inset:0;background:var(--raised);border:1px solid var(--bd);border-radius:999px;transition:background .2s,border-color .2s}
+.switch-thumb{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--tt);transition:transform .2s ease}
+.switch input:checked + .switch-track{background:var(--a6);border-color:var(--a6)}
+.switch input:checked + .switch-track + .switch-thumb{transform:translateX(20px);background:#fff}
+/* radio-pill group */
+.pill-group{display:flex;gap:8px;flex-wrap:wrap}
+.pill-opt{padding:8px 14px;border-radius:999px;font-size:12.5px;font-weight:500;border:1px solid var(--bd);background:transparent;color:var(--ts);cursor:pointer;font-family:inherit;transition:background .15s,color .15s,border-color .15s}
+.pill-opt.on{background:var(--active);color:var(--a4);border-color:var(--a6)}
+/* identity / profile */
+.identity-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:24px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;animation:fadeUp .4s ease both}
+.identity-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#722CE4,#5B21B6);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:#fff;flex-shrink:0;position:relative}
+.identity-avatar .edit-pencil{position:absolute;bottom:-2px;right:-2px;width:24px;height:24px;border-radius:50%;background:var(--raised);border:2px solid var(--shell);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ts);cursor:pointer}
+.identity-meta{flex:1;min-width:200px}
+.identity-name{font-size:18px;font-weight:700;color:var(--tp);display:flex;align-items:center;gap:8px}
+.role-badge{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--active);color:var(--a4);text-transform:uppercase;letter-spacing:.04em}
+.identity-email{font-size:13px;color:var(--ts);margin-top:3px}
+.identity-since{font-size:12px;color:var(--tt);margin-top:6px;display:flex;align-items:center;gap:6px}
+/* account detail rows */
+.detail-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:22px;animation:fadeUp .4s ease both}
+.detail-row{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--bs)}
+.detail-row:last-child{border-bottom:none}
+.detail-key{font-size:12.5px;color:var(--tt)}
+.detail-val{font-size:13.5px;color:var(--tp);font-weight:500}
+.detail-val.mono{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ts)}
+/* achievement card */
+.ach-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.ach-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:20px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;transition:border-color .15s,transform .15s;animation:fadeUp .4s ease both}
+.ach-card:hover{transform:translateY(-2px);border-color:var(--bd)}
+.ach-card.locked{opacity:.45}
+.ach-icon{width:56px;height:56px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:26px;color:#fff}
+.ach-title{font-size:13.5px;font-weight:600;color:var(--tp)}
+.ach-desc{font-size:11.5px;color:var(--tt);line-height:1.4}
+.ach-progress{width:100%;height:5px;border-radius:999px;background:var(--bs);margin-top:4px;overflow:hidden}
+.ach-progress-fill{height:100%;background:var(--a6);border-radius:999px}
+/* timeline (shared with dashboard) */
+.timeline-card{background:var(--surface);border:1px solid var(--bs);border-radius:12px;padding:18px;animation:fadeUp .4s ease both}
+.timeline-list{display:flex;flex-direction:column}
+.tl-item{display:flex;gap:12px;padding:10px 0;position:relative}
+.tl-item:not(:last-child)::after{content:'';position:absolute;left:7px;top:26px;bottom:-4px;width:1px;background:var(--bs)}
+.tl-dot{width:15px;height:15px;border-radius:50%;flex-shrink:0;margin-top:2px;border:2px solid var(--surface);position:relative;z-index:1}
+.tl-body{flex:1;min-width:0}
+.tl-label{font-size:12.5px;font-weight:500;color:var(--tp)}
+.tl-sub{font-size:11.5px;color:var(--tt);margin-top:1px}
+.tl-time{font-size:10.5px;color:var(--td);margin-top:2px}
+/* export card */
+.export-row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px;background:var(--bg);border:1px solid var(--bs);border-radius:12px;margin-bottom:10px}
+.export-row:last-child{margin-bottom:0}
+.export-meta{display:flex;align-items:center;gap:12px}
+.export-icon{width:38px;height:38px;border-radius:10px;background:var(--active);color:var(--a4);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.export-title{font-size:13.5px;font-weight:600;color:var(--tp)}
+.export-desc{font-size:11.5px;color:var(--tt)}
+/* accordion (FAQ) */
+.accordion{display:flex;flex-direction:column;gap:8px}
+.acc-item{background:var(--surface);border:1px solid var(--bs);border-radius:12px;overflow:hidden;transition:border-color .15s}
+.acc-item.open{border-color:var(--bd)}
+.acc-q{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;font-size:13.5px;font-weight:600;color:var(--tp);user-select:none}
+.acc-q i{transition:transform .2s;color:var(--tt);font-size:16px;flex-shrink:0}
+.acc-item.open .acc-q i{transform:rotate(180deg);color:var(--a4)}
+.acc-a{max-height:0;overflow:hidden;transition:max-height .25s ease}
+.acc-a-inner{padding:0 18px 16px;font-size:13px;color:var(--ts);line-height:1.6}
+/* help hero */
+.help-hero{background:var(--surface);border:1px solid var(--bs);border-radius:16px;padding:40px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;animation:fadeUp .4s ease both}
+.help-hero-icon{width:64px;height:64px;border-radius:18px;background:linear-gradient(135deg,#722CE4,#5B21B6);display:flex;align-items:center;justify-content:center;font-size:30px;color:#fff;box-shadow:0 0 32px rgba(124,58,237,.35)}
+.help-hero h1{font-size:26px;font-weight:700;color:var(--tp)}
+.help-hero p{font-size:13.5px;color:var(--ts);max-width:420px}
+.help-search{width:100%;max-width:460px;position:relative;margin-top:6px}
+.help-search input{width:100%;height:46px;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:0 18px 0 44px;font-size:13.5px;color:var(--tp);font-family:inherit;outline:none;transition:border-color .15s}
+.help-search input:focus{border-color:var(--a6);box-shadow:0 0 0 3px rgba(124,58,237,.2)}
+.help-search i{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--tt);font-size:17px}
+/* guide grid */
+.guide-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.guide-card{background:var(--surface);border:1px solid var(--bs);border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color .15s,transform .15s;animation:fadeUp .4s ease both}
+.guide-card:hover{border-color:var(--bd);transform:translateY(-2px)}
+.guide-icon{width:40px;height:40px;border-radius:10px;background:var(--active);color:var(--a4);display:flex;align-items:center;justify-content:center;font-size:19px}
+.guide-title{font-size:14px;font-weight:600;color:var(--tp)}
+.guide-desc{font-size:12px;color:var(--tt);line-height:1.5;flex:1}
+.guide-arrow{color:var(--tt);font-size:14px;transition:transform .15s}
+.guide-card:hover .guide-arrow{transform:translateX(3px);color:var(--a4)}
+/* contact card */
+.contact-card{background:var(--surface);border:1px solid rgba(124,58,237,.35);border-radius:14px;padding:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;animation:fadeUp .4s ease both}
+.contact-left{display:flex;align-items:center;gap:14px}
+/* doc list / tutorial list */
+.doc-list{display:flex;flex-direction:column;gap:8px}
+.doc-row{display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--surface);border:1px solid var(--bs);border-radius:11px;cursor:pointer;transition:background .15s,border-color .15s}
+.doc-row:hover{background:var(--raised);border-color:var(--bd)}
+.doc-row-icon{width:34px;height:34px;border-radius:9px;background:var(--active);color:var(--a4);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.doc-row-title{font-size:13.5px;font-weight:600;color:var(--tp)}
+.doc-row-sub{font-size:11.5px;color:var(--tt);margin-top:1px}
+.doc-row-meta{margin-left:auto;font-size:11px;color:var(--tt);display:flex;align-items:center;gap:8px;flex-shrink:0}
+/* chat widget (AI assistant help) */
+.chat-shell{background:var(--surface);border:1px solid var(--bs);border-radius:16px;display:flex;flex-direction:column;height:440px;animation:fadeUp .4s ease both}
+.chat-msgs{flex:1;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:14px}
+.chat-msg{display:flex;gap:10px;max-width:78%}
+.chat-msg.user{align-self:flex-end;flex-direction:row-reverse}
+.chat-avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;color:#fff}
+.chat-avatar.ai{background:linear-gradient(135deg,#722CE4,#5B21B6)}
+.chat-avatar.user{background:var(--a6)}
+.chat-bubble{padding:11px 14px;border-radius:14px;font-size:13px;line-height:1.5}
+.chat-bubble.ai{background:var(--raised);color:var(--ts);border:1px solid var(--bs)}
+.chat-bubble.user{background:var(--a6);color:#fff}
+.chat-composer{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--bs)}
+.chat-composer input{flex:1;height:44px;background:var(--bg);border:1px solid var(--bd);border-radius:999px;padding:0 18px;font-size:13.5px;color:var(--tp);font-family:inherit;outline:none}
+.chat-composer input:focus{border-color:var(--a6)}
+.chat-send{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#722CE4,#5B21B6);border:none;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:17px}
+.chat-suggest{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 14px}
+.chat-chip{padding:7px 13px;border-radius:999px;background:var(--raised);border:1px solid var(--bd);color:var(--ts);font-size:12px;cursor:pointer;transition:border-color .15s,color .15s}
+.chat-chip:hover{border-color:var(--a6);color:var(--a4)}
+/* responsive */
+@media (max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.ach-grid{grid-template-columns:repeat(2,1fr)}.guide-grid{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:860px){.sidebar{position:absolute;height:100%;left:0}.sidebar:not(.collapsed){box-shadow:4px 0 24px rgba(0,0,0,.5)}}
+@media (max-width:560px){.stats-grid{grid-template-columns:1fr 1fr}.ach-grid{grid-template-columns:1fr}.guide-grid{grid-template-columns:1fr}.content{padding:16px}.identity-card{flex-direction:column;text-align:center}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link rel="stylesheet" href="shared/polish.css">
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+<div class="app">
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+    <div class="sidebar-logo">
+      <div class="logo-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M9 2C5.13 2 2 5.13 2 9s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm0 3c.83 0 1.5.67 1.5 1.5S9.83 8 9 8s-1.5-.67-1.5-1.5S8.17 5 9 5zm0 8c-1.75 0-3.29-.9-4.2-2.26.02-1.39 2.8-2.16 4.2-2.16 1.4 0 4.18.77 4.2 2.16C12.29 12.1 10.75 13 9 13z" fill="white"/></svg>
+      </div>
+      <div class="logo-text"><strong>MemoryVault</strong><span>AI Second Brain</span></div>
+    </div>
+    <div class="sidebar-search">
+      <i class="ti ti-search s-icon" aria-hidden="true"></i>
+      <input type="search" placeholder="Search memories…" aria-label="Search memories">
+      <span class="kbd" aria-hidden="true">⌘K</span>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="memoryvault_dashboard.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-layout-dashboard" aria-hidden="true"></i></span>
+        <span class="nav-text">Dashboard</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-timeline" aria-hidden="true"></i></span>
+        <span class="nav-text">Timeline</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-calendar" aria-hidden="true"></i></span>
+        <span class="nav-text">Calendar</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-folders" aria-hidden="true"></i></span>
+        <span class="nav-text">Collections</span>
+      </a>
+      <a href="MemoryVault_Categories_Search_Archive.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-tag" aria-hidden="true"></i></span>
+        <span class="nav-text">Categories</span>
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Intelligence</div>
+      <a href="ai-assistant.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-sparkles" aria-hidden="true"></i></span>
+        <span class="nav-text">AI Assistant</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-search" aria-hidden="true"></i></span>
+        <span class="nav-text">Search</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></span>
+        <span class="nav-text">Analytics</span>
+      </a>
+    </div>
+    <div class="nav-section">
+      <div class="nav-label">Account</div>
+      <a href="profile.html" class="nav-item active" role="link" tabindex="0" aria-current="page">
+        <span class="nav-icon"><i class="ti ti-user" aria-hidden="true"></i></span>
+        <span class="nav-text">Profile</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-bell" aria-hidden="true"></i></span>
+        <span class="nav-text">Notifications</span>
+      </a>
+      <a href="settings.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-settings" aria-hidden="true"></i></span>
+        <span class="nav-text">Settings</span>
+      </a>
+      <a href="#" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-trash" aria-hidden="true"></i></span>
+        <span class="nav-text">Trash</span>
+      </a>
+      <a href="help-center.html" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-help" aria-hidden="true"></i></span>
+        <span class="nav-text">Help Center</span>
+      </a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="ai-card" role="status" aria-live="polite">
+        <div class="ai-dot-wrap" aria-hidden="true"><div class="ai-dot"></div></div>
+        <div class="ai-text"><strong>AI Active</strong><small class="ai-desc">Processing memories in real-time</small></div>
+      </div>
+      <button class="collapse-btn" onclick="toggleSidebar()" aria-expanded="true" aria-label="Collapse sidebar" id="collapse-btn">
+        <i class="ti ti-chevrons-left collapse-icon" id="collapse-icon" aria-hidden="true"></i>
+        <span class="nav-text" style="font-size:12px;color:var(--tt)">Collapse</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <div class="topbar-title">Profile</div>
+      <div class="topbar-search">
+        <input type="search" placeholder="Search anything…" aria-label="Global search">
+        <span class="kbd" aria-hidden="true">⌘K</span>
+      </div>
+      <button class="capture-btn ripple-surface" aria-label="Capture new memory"><i class="ti ti-plus" aria-hidden="true"></i>Capture</button>
+      <button class="icon-btn" aria-label="Notifications (3 unread)"><i class="ti ti-bell" aria-hidden="true"></i><span class="notif-dot" aria-hidden="true"></span></button>
+      <div class="avatar" role="button" tabindex="0" aria-label="User menu — Maya M." title="Maya M.">MM</div>
+    </header>
+
+    <main class="content" id="main-content">
+
+      <div class="page-header">
+        <div>
+          <h1>Profile</h1>
+          <p>Manage your identity, track your progress, and review your activity</p>
+        </div>
+      </div>
+
+      <div class="seg-tabs" role="tablist" aria-label="Profile sections">
+        <button class="seg-tab active" data-group="profile" onclick="showTab('profile','overview',this)"><i class="ti ti-user"></i>Overview</button>
+        <button class="seg-tab" data-group="profile" onclick="showTab('profile','stats',this)"><i class="ti ti-chart-bar"></i>Statistics</button>
+        <button class="seg-tab" data-group="profile" onclick="showTab('profile','achievements',this)"><i class="ti ti-award"></i>Achievements</button>
+        <button class="seg-tab" data-group="profile" onclick="showTab('profile','activity',this)"><i class="ti ti-history"></i>Activity</button>
+        <button class="seg-tab" data-group="profile" onclick="showTab('profile','export',this)"><i class="ti ti-download"></i>Export Data</button>
+      </div>
+
+      <!-- OVERVIEW (User Profile) -->
+      <div class="tab-panel active" data-group="profile" data-name="overview">
+        <div class="identity-card">
+          <div class="identity-avatar">
+            MM
+            <div class="edit-pencil" title="Edit avatar"><i class="ti ti-pencil"></i></div>
+          </div>
+          <div class="identity-meta">
+            <div class="identity-name">Maya Mitchell <span class="role-badge">Admin</span></div>
+            <div class="identity-email">maya.mitchell@memoryvault.ai</div>
+            <div class="identity-since"><i class="ti ti-calendar" aria-hidden="true"></i>Member since March 2024</div>
+          </div>
+          <button class="btn btn-secondary"><i class="ti ti-pencil"></i>Edit Profile</button>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header"><div class="stat-icon" style="background:rgba(124,58,237,.15);color:var(--a4)"><i class="ti ti-brain"></i></div></div>
+            <div class="stat-value">247</div>
+            <div class="stat-label">Total Memories</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div class="stat-icon" style="background:rgba(20,184,166,.15);color:var(--teal)"><i class="ti ti-folders"></i></div></div>
+            <div class="stat-value">14</div>
+            <div class="stat-label">Collections</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div class="stat-icon" style="background:rgba(251,191,36,.15);color:var(--gold)"><i class="ti ti-star"></i></div></div>
+            <div class="stat-value">38</div>
+            <div class="stat-label">Favorites</div>
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <div class="sc-header" style="margin-bottom:6px"><div class="sc-icon"><i class="ti ti-id-badge-2"></i></div><div><div class="sc-title">Account Details</div><div class="sc-sub">Your core account information</div></div></div>
+          <div class="detail-row"><span class="detail-key">Full Name</span><span class="detail-val">Maya Mitchell</span></div>
+          <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">maya.mitchell@memoryvault.ai</span></div>
+          <div class="detail-row"><span class="detail-key">Role</span><span class="detail-val">Admin</span></div>
+          <div class="detail-row"><span class="detail-key">User ID</span><span class="detail-val mono">usr_8f2a91c7d4e0</span></div>
+        </div>
+      </div>
+
+      <!-- STATISTICS -->
+      <div class="tab-panel" data-group="profile" data-name="stats">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(59,130,246,.15);color:var(--blue)"><i class="ti ti-file-text"></i></div></div><div class="stat-value">96</div><div class="stat-label">Notes Captured</div></div>
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(236,72,153,.15);color:var(--pink)"><i class="ti ti-microphone"></i></div></div><div class="stat-value">41</div><div class="stat-label">Voice Memos</div></div>
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(16,185,129,.15);color:var(--green)"><i class="ti ti-message-circle"></i></div></div><div class="stat-value">58</div><div class="stat-label">Conversations</div></div>
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(249,115,22,.15);color:var(--orange)"><i class="ti ti-calendar-event"></i></div></div><div class="stat-value">27</div><div class="stat-label">Meetings Logged</div></div>
+        </div>
+        <div class="chart-card" style="background:var(--surface);border:1px solid var(--bs);border-radius:12px;padding:18px">
+          <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="section-title" style="font-size:15px;font-weight:600;color:var(--tp)">Memory Growth (Last 6 Months)</div>
+          </div>
+          <div style="height:240px"><canvas id="growthChart"></canvas></div>
+        </div>
+        <div class="detail-card">
+          <div class="sc-header" style="margin-bottom:6px"><div class="sc-icon"><i class="ti ti-trending-up"></i></div><div><div class="sc-title">Usage Insights</div><div class="sc-sub">How you use MemoryVault</div></div></div>
+          <div class="detail-row"><span class="detail-key">Average captures per week</span><span class="detail-val">12.4</span></div>
+          <div class="detail-row"><span class="detail-key">Longest capture streak</span><span class="detail-val">23 days</span></div>
+          <div class="detail-row"><span class="detail-key">Most active day</span><span class="detail-val">Tuesday</span></div>
+          <div class="detail-row"><span class="detail-key">AI insights generated</span><span class="detail-val">19</span></div>
+        </div>
+      </div>
+
+      <!-- ACHIEVEMENTS -->
+      <div class="tab-panel" data-group="profile" data-name="achievements">
+        <div class="ach-grid">
+          <div class="ach-card"><div class="ach-icon" style="background:linear-gradient(135deg,#722CE4,#5B21B6)"><i class="ti ti-rocket"></i></div><div class="ach-title">First Capture</div><div class="ach-desc">Captured your very first memory</div></div>
+          <div class="ach-card"><div class="ach-icon" style="background:#F59E0B"><i class="ti ti-flame"></i></div><div class="ach-title">7-Day Streak</div><div class="ach-desc">Captured memories for 7 days in a row</div></div>
+          <div class="ach-card"><div class="ach-icon" style="background:#10B981"><i class="ti ti-message-circle"></i></div><div class="ach-title">Conversationalist</div><div class="ach-desc">Logged 50 conversations</div></div>
+          <div class="ach-card"><div class="ach-icon" style="background:#3B82F6"><i class="ti ti-notebook"></i></div><div class="ach-title">Note Taker</div><div class="ach-desc">Captured 100 notes</div></div>
+          <div class="ach-card"><div class="ach-icon" style="background:#A855F7"><i class="ti ti-sparkles"></i></div><div class="ach-title">AI Explorer</div><div class="ach-desc">Asked the AI Assistant 25 questions</div></div>
+          <div class="ach-card locked"><div class="ach-icon" style="background:#454966"><i class="ti ti-lock"></i></div><div class="ach-title">Century Club</div><div class="ach-desc">Reach 500 total memories</div><div class="ach-progress"><div class="ach-progress-fill" style="width:49%"></div></div></div>
+          <div class="ach-card locked"><div class="ach-icon" style="background:#454966"><i class="ti ti-lock"></i></div><div class="ach-title">Master Organizer</div><div class="ach-desc">Create 25 collections</div><div class="ach-progress"><div class="ach-progress-fill" style="width:56%"></div></div></div>
+          <div class="ach-card"><div class="ach-icon" style="background:#EC4899"><i class="ti ti-microphone"></i></div><div class="ach-title">Voice Pioneer</div><div class="ach-desc">Captured 25 voice memos</div></div>
+          <div class="ach-card locked"><div class="ach-icon" style="background:#454966"><i class="ti ti-lock"></i></div><div class="ach-title">One Year Strong</div><div class="ach-desc">Active for 365 days</div><div class="ach-progress"><div class="ach-progress-fill" style="width:34%"></div></div></div>
+        </div>
+      </div>
+
+      <!-- ACTIVITY -->
+      <div class="tab-panel" data-group="profile" data-name="activity">
+        <div class="timeline-card">
+          <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="section-title" style="font-size:15px;font-weight:600;color:var(--tp)">Recent Activity</div></div>
+          <div class="timeline-list">
+            <div class="tl-item"><div class="tl-dot" style="background:var(--blue)"></div><div class="tl-body"><div class="tl-label">Captured a new note — "Q3 Roadmap Ideas"</div><div class="tl-sub">Notes</div><div class="tl-time">2 hours ago</div></div></div>
+            <div class="tl-item"><div class="tl-dot" style="background:var(--purple)"></div><div class="tl-body"><div class="tl-label">Asked the AI Assistant about project deadlines</div><div class="tl-sub">AI Assistant</div><div class="tl-time">5 hours ago</div></div></div>
+            <div class="tl-item"><div class="tl-dot" style="background:var(--green)"></div><div class="tl-body"><div class="tl-label">Logged a conversation — "Client check-in"</div><div class="tl-sub">Conversations</div><div class="tl-time">Yesterday</div></div></div>
+            <div class="tl-item"><div class="tl-dot" style="background:var(--gold)"></div><div class="tl-body"><div class="tl-label">Favorited "Onboarding meeting notes"</div><div class="tl-sub">Favorites</div><div class="tl-time">2 days ago</div></div></div>
+            <div class="tl-item"><div class="tl-dot" style="background:var(--teal)"></div><div class="tl-body"><div class="tl-label">Created collection "Product Launch 2026"</div><div class="tl-sub">Collections</div><div class="tl-time">3 days ago</div></div></div>
+            <div class="tl-item"><div class="tl-dot" style="background:var(--orange)"></div><div class="tl-body"><div class="tl-label">Logged meeting — "Design Review"</div><div class="tl-sub">Meetings</div><div class="tl-time">4 days ago</div></div></div>
+            <div class="tl-item"><div class="tl-dot" style="background:var(--pink)"></div><div class="tl-body"><div class="tl-label">Captured voice memo — "Walking thoughts"</div><div class="tl-sub">Voice Memos</div><div class="tl-time">5 days ago</div></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPORT DATA -->
+      <div class="tab-panel" data-group="profile" data-name="export">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-download"></i></div><div><div class="sc-title">Export Your Data</div><div class="sc-sub">Download a copy of everything stored in your MemoryVault</div></div></div>
+
+          <div class="export-row">
+            <div class="export-meta"><div class="export-icon"><i class="ti ti-file-zip"></i></div><div><div class="export-title">Full Data Export (JSON)</div><div class="export-desc">All memories, collections, tags &amp; metadata</div></div></div>
+            <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i>Export</button>
+          </div>
+          <div class="export-row">
+            <div class="export-meta"><div class="export-icon"><i class="ti ti-file-text"></i></div><div><div class="export-title">Memories Only (CSV)</div><div class="export-desc">Spreadsheet-friendly export of all memory entries</div></div></div>
+            <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i>Export</button>
+          </div>
+          <div class="export-row">
+            <div class="export-meta"><div class="export-icon"><i class="ti ti-chart-bar"></i></div><div><div class="export-title">Analytics Report (PDF)</div><div class="export-desc">Usage stats, charts, and achievements summary</div></div></div>
+            <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i>Export</button>
+          </div>
+          <div class="field-hint" style="margin-top:8px">Exports are bundled and emailed to maya.mitchell@memoryvault.ai as a secure download link, typically within a few minutes.</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+<script>
+function toggleSidebar(){
+  const sidebar=document.getElementById('sidebar');
+  const btn=document.getElementById('collapse-btn');
+  const isCollapsed=sidebar.classList.toggle('collapsed');
+  btn.setAttribute('aria-expanded',String(!isCollapsed));
+  btn.setAttribute('aria-label',isCollapsed?'Expand sidebar':'Collapse sidebar');
+}
+document.querySelectorAll('.nav-item, .avatar').forEach(el=>{
+  el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){e.preventDefault();el.click();} });
+});
+function showTab(group, name, btn){
+  document.querySelectorAll('.tab-panel[data-group="'+group+'"]').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.seg-tab[data-group="'+group+'"]').forEach(t=>t.classList.remove('active'));
+  document.querySelector('.tab-panel[data-group="'+group+'"][data-name="'+name+'"]').classList.add('active');
+  btn.classList.add('active');
+}
+function toggleAccordion(el){
+  const item = el.closest('.acc-item');
+  const isOpen = item.classList.toggle('open');
+  const ans = item.querySelector('.acc-a');
+  ans.style.maxHeight = isOpen ? ans.scrollHeight + 'px' : '0px';
+}
+
+const gctx = document.getElementById('growthChart').getContext('2d');
+new Chart(gctx, {
+  type: 'line',
+  data: {
+    labels: ['Jan','Feb','Mar','Apr','May','Jun'],
+    datasets: [{
+      label: 'Total Memories',
+      data: [82, 110, 142, 168, 205, 247],
+      borderColor: '#8B5CF6',
+      backgroundColor: 'rgba(139,92,246,.12)',
+      fill: true,
+      tension: .4,
+      pointRadius: 3,
+      pointBackgroundColor: '#7C3AED',
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor:'#181A33', borderColor:'#2A2D4D', borderWidth:1, titleColor:'#F8FAFC', bodyColor:'#A1A8C3', padding:10, cornerRadius:8 } },
+    scales: {
+      x: { grid: { display:false }, ticks: { color:'#6B7290', font:{size:11,family:'Inter'} } },
+      y: { grid: { color:'rgba(33,35,63,.8)' }, ticks: { color:'#6B7290', font:{size:11,family:'Inter'}, maxTicksLimit:5 } }
+    }
+  }
+});
+
+</script>
+<script src="shared/polish.js"></script>
+</body>
+</html>

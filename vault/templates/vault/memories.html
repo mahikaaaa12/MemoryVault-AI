@@ -1,0 +1,395 @@
+{% extends "vault/base.html" %}
+{% load static %}
+
+{% block title %}Memories{% endblock %}
+{% block topbar_title %}Memories{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/account-pages.css' %}">
+<link rel="stylesheet" href="{% static 'vault/css/memories.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="page-header">
+    <div>
+      <h1>Memories</h1>
+      <p>Everything you've captured, in one place</p>
+    </div>
+    <button type="button" class="btn btn-primary" id="newMemoryBtn">
+      <i class="ti ti-plus" aria-hidden="true"></i>New Memory
+    </button>
+  </div>
+
+  {% if messages %}
+    {% for message in messages %}
+      <div class="field-hint" role="status" style="margin:4px 0 0;color:var(--ok,#22C55E)">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- ── STAT ROW ─────────────────────────────────────────────── -->
+  <div class="mem-stats">
+    <div class="mem-stat"><i class="ti ti-layers" style="color:var(--a4,#9F75F0)" aria-hidden="true"></i><strong>{{ stats.total }}</strong><span>Total</span></div>
+    <div class="mem-stat"><i class="ti ti-star" style="color:var(--favorite-gold,#FBBF24)" aria-hidden="true"></i><strong>{{ stats.favorites }}</strong><span>Favorites</span></div>
+    <div class="mem-stat"><i class="ti ti-pin" style="color:var(--a5,#8B5CF6)" aria-hidden="true"></i><strong>{{ stats.pinned }}</strong><span>Pinned</span></div>
+    <div class="mem-stat"><i class="ti ti-archive" style="color:var(--tt,#6B7290)" aria-hidden="true"></i><strong>{{ stats.archived }}</strong><span>Archived</span></div>
+  </div>
+
+  <!-- ── TABS ─────────────────────────────────────────────────── -->
+  <div class="mem-tabs" role="tablist" aria-label="Memory views">
+    <a href="?tab=timeline" class="mem-tab{% if active_tab == 'timeline' %} active{% endif %}" role="tab" aria-selected="{% if active_tab == 'timeline' %}true{% else %}false{% endif %}">
+      <i class="ti ti-layers" aria-hidden="true"></i>All memories
+    </a>
+    <a href="?tab=archived" class="mem-tab{% if active_tab == 'archived' %} active{% endif %}" role="tab" aria-selected="{% if active_tab == 'archived' %}true{% else %}false{% endif %}">
+      <i class="ti ti-archive" aria-hidden="true"></i>Archived<span class="count">{{ stats.archived }}</span>
+    </a>
+    <a href="?tab=trash" class="mem-tab{% if active_tab == 'trash' %} active{% endif %}" role="tab" aria-selected="{% if active_tab == 'trash' %}true{% else %}false{% endif %}">
+      <i class="ti ti-trash" aria-hidden="true"></i>Trash
+    </a>
+  </div>
+
+  {% if memories %}
+    {% if active_tab == 'trash' %}
+      <!-- ── TRASH ROWS ───────────────────────────────────────── -->
+      <div class="trash-list" role="list" aria-label="Deleted memories">
+        {% for memory in memories %}
+          <div class="trash-row" role="listitem">
+            <div class="mem-icon" style="background:{{ memory.type_bg }};color:{{ memory.type_color }}" aria-hidden="true">
+              <i class="ti ti-{{ memory.type_icon }}"></i>
+            </div>
+            <div class="trash-body">
+              <p class="trash-title">{{ memory.title }}</p>
+              <p class="trash-meta">Deleted {{ memory.deleted_at|date:"M j, Y" }}</p>
+            </div>
+            <div class="trash-actions">
+              <form method="post" action="{% url 'vault:memory_restore' memory.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-secondary btn-sm">
+                  <i class="ti ti-rotate-2" aria-hidden="true"></i>Restore
+                </button>
+              </form>
+              <form method="post" action="{% url 'vault:memory_permanent_delete' memory.pk %}"
+                    onsubmit="return confirm('Permanently delete this memory? This cannot be undone.');">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-destructive btn-sm">
+                  <i class="ti ti-trash" aria-hidden="true"></i>Delete forever
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <!-- ── CARD GRID (Timeline / Archived) ─────────────────── -->
+      <div class="memory-grid" role="list" aria-label="Your memories">
+        {% for memory in memories %}
+          <div class="memory-card" role="listitem" tabindex="0">
+            <div class="mem-icon" style="background:{{ memory.type_bg }};color:{{ memory.type_color }}" aria-hidden="true">
+              <i class="ti ti-{{ memory.type_icon }}"></i>
+            </div>
+
+            <div class="mem-body">
+              <div class="mem-top">
+                <span class="mem-title">
+                  {% if memory.is_pinned %}<span class="mem-pin-flag"><i class="ti ti-pin" aria-hidden="true"></i></span>{% endif %}
+                  {{ memory.title }}
+                  {% if memory.is_archived %}<span class="mem-archived-flag">archived</span>{% endif %}
+                </span>
+                <span class="mem-time">{{ memory.occurred_at|date:"M j, Y" }}</span>
+              </div>
+              <div class="mem-snippet">{{ memory.content|truncatechars:140 }}</div>
+              <div class="mem-tags">
+                {% if memory.category %}<span class="tag" style="background:rgba(124,58,237,.12);color:#9F75F0">{{ memory.category }}</span>{% endif %}
+                {% for tag in memory.tags.all %}
+                  <span class="tag" style="background:rgba(59,130,246,.12);color:#3B82F6">{{ tag.name }}</span>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="mem-actions">
+              <form method="post" action="{% url 'vault:memory_favorite' memory.pk %}">
+                {% csrf_token %}<input type="hidden" name="tab" value="{{ active_tab }}">
+                <button type="submit" class="icon-btn{% if memory.is_favorite %} active{% endif %}"
+                        aria-label="{% if memory.is_favorite %}Remove from favorites{% else %}Add to favorites{% endif %}">
+                  <i class="ti ti-star{% if memory.is_favorite %}-filled{% endif %}" aria-hidden="true"></i>
+                </button>
+              </form>
+              <form method="post" action="{% url 'vault:memory_pin' memory.pk %}">
+                {% csrf_token %}<input type="hidden" name="tab" value="{{ active_tab }}">
+                <button type="submit" class="icon-btn{% if memory.is_pinned %} pinned{% endif %}"
+                        aria-label="{% if memory.is_pinned %}Unpin{% else %}Pin{% endif %}">
+                  <i class="ti ti-pin" aria-hidden="true"></i>
+                </button>
+              </form>
+              <form method="post" action="{% url 'vault:memory_archive' memory.pk %}">
+                {% csrf_token %}<input type="hidden" name="tab" value="{{ active_tab }}">
+                <button type="submit" class="icon-btn{% if memory.is_archived %} archived{% endif %}"
+                        aria-label="{% if memory.is_archived %}Unarchive{% else %}Archive{% endif %}">
+                  <i class="ti ti-archive" aria-hidden="true"></i>
+                </button>
+              </form>
+              <button type="button" class="icon-btn edit-memory-btn" aria-label="Edit memory"
+                      data-id="{{ memory.pk }}"
+                      data-edit-url="{% url 'vault:memory_edit' memory.pk %}?tab={{ active_tab }}"
+                      data-type="{{ memory.type }}"
+                      data-title="{{ memory.title|escapejs }}"
+                      data-content="{{ memory.content|escapejs }}"
+                      data-category="{{ memory.category }}"
+                      data-mood="{{ memory.mood|escapejs }}"
+                      data-ai-summary="{{ memory.ai_summary|escapejs }}"
+                      data-occurred="{{ memory.occurred_at|date:'Y-m-d\TH:i' }}"
+                      data-tags="{{ memory.tag_names|join:', '|escapejs }}">
+                <i class="ti ti-edit" aria-hidden="true"></i>
+              </button>
+              <form method="post" action="{% url 'vault:memory_delete' memory.pk %}"
+                    onsubmit="return confirm('Move this memory to Trash?');">
+                {% csrf_token %}<input type="hidden" name="tab" value="{{ active_tab }}">
+                <button type="submit" class="icon-btn danger" aria-label="Delete memory">
+                  <i class="ti ti-trash" aria-hidden="true"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="empty-state">
+      <div class="empty-icon" aria-hidden="true">
+        <i class="ti ti-{% if active_tab == 'trash' %}trash{% elif active_tab == 'archived' %}archive{% else %}notes{% endif %}"></i>
+      </div>
+      <h3>
+        {% if active_tab == 'trash' %}Trash is empty
+        {% elif active_tab == 'archived' %}Nothing archived
+        {% else %}No memories yet{% endif %}
+      </h3>
+      <p>
+        {% if active_tab == 'trash' %}Deleted memories will appear here.
+        {% elif active_tab == 'archived' %}Archived memories will appear here.
+        {% else %}Capture your first note, conversation, or idea to get started.{% endif %}
+      </p>
+      {% if active_tab == 'timeline' %}
+        <button type="button" class="btn btn-primary empty-action" id="emptyStateNewMemoryBtn">
+          <i class="ti ti-plus" aria-hidden="true"></i>New Memory
+        </button>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <!-- ── PAGINATION ───────────────────────────────────────────── -->
+  {% if paginator.num_pages > 1 %}
+    <nav class="pagination" aria-label="Memories pages">
+      {% if page_obj.has_previous %}
+        <a class="btn btn-secondary btn-sm" href="?tab={{ active_tab }}&page={{ page_obj.previous_page_number }}">
+          <i class="ti ti-chevron-left" aria-hidden="true"></i>Previous
+        </a>
+      {% endif %}
+      <span class="pagination-status">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="btn btn-secondary btn-sm" href="?tab={{ active_tab }}&page={{ page_obj.next_page_number }}">
+          Next<i class="ti ti-chevron-right" aria-hidden="true"></i>
+        </a>
+      {% endif %}
+    </nav>
+  {% endif %}
+
+  <!-- ── CREATE / EDIT MODAL ─────────────────────────────────── -->
+  <div class="modal-scrim{% if editing %} show{% endif %}" id="memoryModalScrim">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="memoryModalTitle">{% if editing %}Edit Memory{% else %}New Memory{% endif %}</h3>
+        <button type="button" class="icon-btn" id="memoryModalClose" aria-label="Close"><i class="ti ti-x"></i></button>
+      </div>
+
+      <form method="post"
+            enctype="multipart/form-data"
+            id="memoryForm"
+            action="{% if editing %}{% url 'vault:memory_edit' editing.pk %}?tab={{ active_tab }}{% else %}{% url 'vault:memories' %}?tab={{ active_tab }}{% endif %}">
+        {% csrf_token %}
+        <div class="modal-body">
+
+          <div class="row2">
+            <div class="field">
+              <label for="{{ form.type.id_for_label }}">Type</label>
+              {{ form.type }}
+            </div>
+            <div class="field">
+              <label for="{{ form.category.id_for_label }}">Category</label>
+              {{ form.category }}
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="{{ form.title.id_for_label }}">Title</label>
+            {{ form.title }}
+            {% if form.title.errors %}<div class="field-error"><i class="ti ti-alert-circle"></i>{{ form.title.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <label for="{{ form.content.id_for_label }}">Content</label>
+            {{ form.content }}
+            {% if form.content.errors %}<div class="field-error"><i class="ti ti-alert-circle"></i>{{ form.content.errors.0 }}</div>{% endif %}
+          </div>
+
+          <div class="field">
+            <div class="field-label-row">
+              <label for="{{ form.ai_summary.id_for_label }}">AI Summary</label>
+              <button type="button" class="btn btn-ghost btn-sm ai-suggest-btn" id="aiSummaryBtn">
+                <i class="ti ti-sparkles" aria-hidden="true"></i>Suggest
+              </button>
+            </div>
+            {{ form.ai_summary }}
+          </div>
+
+          <div class="row2">
+            <div class="field">
+              <label for="{{ form.occurred_at.id_for_label }}">Date &amp; time</label>
+              {{ form.occurred_at }}
+            </div>
+            <div class="field">
+              <label for="{{ form.mood.id_for_label }}">Mood</label>
+              {{ form.mood }}
+            </div>
+          </div>
+
+          <div class="field">
+            <div class="field-label-row">
+              <label for="{{ form.tags.id_for_label }}">Tags</label>
+              <button type="button" class="btn btn-ghost btn-sm ai-suggest-btn" id="aiTagsBtn">
+                <i class="ti ti-sparkles" aria-hidden="true"></i>Suggest
+              </button>
+            </div>
+            {{ form.tags }}
+            <div class="field-hint">{{ form.tags.help_text }}</div>
+          </div>
+
+          <div class="field">
+            <label for="{{ form.media_file.id_for_label }}">Attachment (optional)</label>
+            {{ form.media_file }}
+          </div>
+
+        </div>
+        <div class="modal-foot">
+          <span class="field-hint" style="margin:0"></span>
+          <button type="submit" class="btn btn-primary" style="margin-left:auto">
+            <i class="ti ti-check" aria-hidden="true"></i>Save Memory
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function () {
+  const scrim     = document.getElementById('memoryModalScrim');
+  const form      = document.getElementById('memoryForm');
+  const title     = document.getElementById('memoryModalTitle');
+  const closeBtn  = document.getElementById('memoryModalClose');
+  const createUrl = "{% url 'vault:memories' %}?tab={{ active_tab }}";
+
+  const f = {
+    type:      document.getElementById('{{ form.type.id_for_label }}'),
+    title:     document.getElementById('{{ form.title.id_for_label }}'),
+    content:   document.getElementById('{{ form.content.id_for_label }}'),
+    category:  document.getElementById('{{ form.category.id_for_label }}'),
+    mood:      document.getElementById('{{ form.mood.id_for_label }}'),
+    aiSummary: document.getElementById('{{ form.ai_summary.id_for_label }}'),
+    occurred:  document.getElementById('{{ form.occurred_at.id_for_label }}'),
+    tags:      document.getElementById('{{ form.tags.id_for_label }}'),
+  };
+
+  function openModal() { scrim.classList.add('show'); }
+  function closeModal() { scrim.classList.remove('show'); }
+
+  function resetForCreate() {
+    title.textContent = 'New Memory';
+    form.action = createUrl;
+    form.reset();
+    f.aiSummary.value = '';
+  }
+
+  document.getElementById('newMemoryBtn')?.addEventListener('click', () => { resetForCreate(); openModal(); });
+  document.getElementById('emptyStateNewMemoryBtn')?.addEventListener('click', () => { resetForCreate(); openModal(); });
+  closeBtn.addEventListener('click', closeModal);
+  scrim.addEventListener('click', (e) => { if (e.target === scrim) closeModal(); });
+
+  document.querySelectorAll('.edit-memory-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      title.textContent = 'Edit Memory';
+      form.action = btn.dataset.editUrl;
+      f.type.value      = btn.dataset.type;
+      f.title.value     = btn.dataset.title;
+      f.content.value   = btn.dataset.content;
+      f.category.value  = btn.dataset.category;
+      f.mood.value      = btn.dataset.mood;
+      f.aiSummary.value = btn.dataset.aiSummary;
+      f.occurred.value  = btn.dataset.occurred;
+      f.tags.value      = btn.dataset.tags;
+      openModal();
+    });
+  });
+
+  /* ── AI Summary / Tags "Suggest" (Step 15b) ─────────────── */
+  function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+  }
+
+  function setBtnLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.querySelector('i').className = loading ? 'ti ti-loader-2 ai-spin' : 'ti ti-sparkles';
+  }
+
+  document.getElementById('aiSummaryBtn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (!f.content.value.trim()) { mvToast('Add some content first', 'info'); return; }
+    setBtnLoading(btn, true);
+    try {
+      const res = await fetch("{% url 'vault:memory_ai_summary' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ title: f.title.value, content: f.content.value }),
+      });
+      const data = await res.json();
+      if (data.summary) {
+        f.aiSummary.value = data.summary;
+        mvToast('AI summary generated ✨', 'success');
+      } else {
+        mvToast(data.error || "Couldn't generate summary", 'error');
+      }
+    } catch (err) {
+      mvToast("Couldn't reach the AI service", 'error');
+    } finally {
+      setBtnLoading(btn, false);
+    }
+  });
+
+  document.getElementById('aiTagsBtn').addEventListener('click', async (e) => {
+    const btn = e.currentTarget;
+    if (!f.content.value.trim()) { mvToast('Add some content first', 'info'); return; }
+    setBtnLoading(btn, true);
+    try {
+      const res = await fetch("{% url 'vault:memory_ai_tags' %}", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ title: f.title.value, content: f.content.value, category: f.category.value }),
+      });
+      const data = await res.json();
+      if (data.tags && data.tags.length) {
+        const existing = f.tags.value.split(',').map(t => t.trim()).filter(Boolean);
+        const merged = [...new Set([...existing, ...data.tags])];
+        f.tags.value = merged.join(', ');
+        mvToast(`Added ${data.tags.length} AI-suggested tags ✨`, 'success');
+      } else {
+        mvToast(data.error || "Couldn't generate tags", 'error');
+      }
+    } catch (err) {
+      mvToast("Couldn't reach the AI service", 'error');
+    } finally {
+      setBtnLoading(btn, false);
+    }
+  });
+})();
+</script>
+{% endblock %}

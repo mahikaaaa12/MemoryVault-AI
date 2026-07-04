@@ -1,0 +1,173 @@
+{% extends "vault/base.html" %}
+{% load static vault_extras %}
+
+{% block title %}Profile{% endblock %}
+{% block topbar_title %}Profile{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/account-pages.css' %}">
+{% endblock %}
+
+{% block content %}
+      <div class="page-header">
+        <div>
+          <h1>Profile</h1>
+          <p>Manage your identity, track your progress, and review your activity</p>
+        </div>
+      </div>
+
+      <div class="seg-tabs" role="tablist" aria-label="Profile sections">
+        <button class="seg-tab active" data-group="profile" onclick="showTab('profile','overview',this)"><i class="ti ti-user"></i>Overview</button>
+        <button class="seg-tab" data-group="profile" onclick="showTab('profile','stats',this)"><i class="ti ti-chart-bar"></i>Statistics</button>
+        <button class="seg-tab" data-group="profile" onclick="showTab('profile','achievements',this)"><i class="ti ti-award"></i>Achievements</button>
+        <button class="seg-tab" data-group="profile" onclick="showTab('profile','activity',this)"><i class="ti ti-history"></i>Activity</button>
+        <button class="seg-tab" data-group="profile" onclick="showTab('profile','export',this)"><i class="ti ti-download"></i>Export Data</button>
+      </div>
+
+      <!-- OVERVIEW (User Profile) -->
+      <div class="tab-panel active" data-group="profile" data-name="overview">
+        <div class="identity-card">
+          <div class="identity-avatar" style="background:{{ profile_obj.avatar_color }}">
+            {{ profile_obj.initials }}
+            <div class="edit-pencil" title="Edit avatar"><i class="ti ti-pencil"></i></div>
+          </div>
+          <div class="identity-meta">
+            <div class="identity-name">{{ profile_obj.display_name }} <span class="role-badge">{{ profile_obj.get_role_display }}</span></div>
+            <div class="identity-email">{{ request.user.email|default:"No email on file" }}</div>
+            <div class="identity-since"><i class="ti ti-calendar" aria-hidden="true"></i>Member since {{ request.user.date_joined|date:"F Y" }}</div>
+          </div>
+          <a href="{% url 'vault:settings' %}" class="btn btn-secondary"><i class="ti ti-pencil"></i>Edit Profile</a>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-header"><div class="stat-icon" style="background:rgba(124,58,237,.15);color:var(--a4)"><i class="ti ti-brain"></i></div></div>
+            <div class="stat-value">{{ total_memories }}</div>
+            <div class="stat-label">Total Memories</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div class="stat-icon" style="background:rgba(20,184,166,.15);color:var(--teal)"><i class="ti ti-folders"></i></div></div>
+            <div class="stat-value">{{ total_collections }}</div>
+            <div class="stat-label">Collections</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-header"><div class="stat-icon" style="background:rgba(251,191,36,.15);color:var(--gold)"><i class="ti ti-star"></i></div></div>
+            <div class="stat-value">{{ total_favorites }}</div>
+            <div class="stat-label">Favorites</div>
+          </div>
+        </div>
+
+        <div class="detail-card">
+          <div class="sc-header" style="margin-bottom:6px"><div class="sc-icon"><i class="ti ti-id-badge-2"></i></div><div><div class="sc-title">Account Details</div><div class="sc-sub">Your core account information</div></div></div>
+          <div class="detail-row"><span class="detail-key">Full Name</span><span class="detail-val">{{ profile_obj.display_name }}</span></div>
+          <div class="detail-row"><span class="detail-key">Email</span><span class="detail-val">{{ request.user.email|default:"—" }}</span></div>
+          <div class="detail-row"><span class="detail-key">Role</span><span class="detail-val">{{ profile_obj.get_role_display }}</span></div>
+          <div class="detail-row"><span class="detail-key">User ID</span><span class="detail-val mono">usr_{{ request.user.id }}</span></div>
+        </div>
+      </div>
+
+      <!-- STATISTICS -->
+      <div class="tab-panel" data-group="profile" data-name="stats">
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(59,130,246,.15);color:var(--blue)"><i class="ti ti-file-text"></i></div></div><div class="stat-value">{{ notes_count }}</div><div class="stat-label">Notes Captured</div></div>
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(236,72,153,.15);color:var(--pink)"><i class="ti ti-microphone"></i></div></div><div class="stat-value">{{ voice_count }}</div><div class="stat-label">Voice Memos</div></div>
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(16,185,129,.15);color:var(--green)"><i class="ti ti-message-circle"></i></div></div><div class="stat-value">{{ conversation_count }}</div><div class="stat-label">Conversations</div></div>
+          <div class="stat-card"><div class="stat-header"><div class="stat-icon" style="background:rgba(249,115,22,.15);color:var(--orange)"><i class="ti ti-calendar-event"></i></div></div><div class="stat-value">{{ meeting_count }}</div><div class="stat-label">Meetings Logged</div></div>
+        </div>
+        <div class="chart-card" style="background:var(--surface);border:1px solid var(--bs);border-radius:12px;padding:18px">
+          <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+            <div class="section-title" style="font-size:15px;font-weight:600;color:var(--tp)">Memory Growth (Last 6 Months)</div>
+          </div>
+          <div style="height:240px"><canvas id="growthChart"></canvas></div>
+        </div>
+        <div class="detail-card">
+          <div class="sc-header" style="margin-bottom:6px"><div class="sc-icon"><i class="ti ti-trending-up"></i></div><div><div class="sc-title">Usage Insights</div><div class="sc-sub">How you use MemoryVault</div></div></div>
+          <div class="detail-row"><span class="detail-key">Average captures per week</span><span class="detail-val">{{ avg_per_week }}</span></div>
+          <div class="detail-row"><span class="detail-key">Longest capture streak</span><span class="detail-val">{{ longest_streak }} day{{ longest_streak|pluralize }}</span></div>
+          <div class="detail-row"><span class="detail-key">Most active day</span><span class="detail-val">{{ most_active_day }}</span></div>
+          <div class="detail-row"><span class="detail-key">AI insights generated</span><span class="detail-val">{{ ai_insight_count }}</span></div>
+        </div>
+      </div>
+
+      <!-- ACHIEVEMENTS -->
+      <div class="tab-panel" data-group="profile" data-name="achievements">
+        <div class="ach-grid">
+          {% for a in achievements %}
+          <div class="ach-card{% if a.locked %} locked{% endif %}">
+            <div class="ach-icon" style="background:{{ a.color }}"><i class="ti ti-{% if a.locked %}lock{% else %}{{ a.icon }}{% endif %}"></i></div>
+            <div class="ach-title">{{ a.title }}</div>
+            <div class="ach-desc">{{ a.desc }}</div>
+            {% if a.locked %}<div class="ach-progress"><div class="ach-progress-fill" style="width:{{ a.progress }}%"></div></div>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- ACTIVITY -->
+      <div class="tab-panel" data-group="profile" data-name="activity">
+        <div class="timeline-card">
+          <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div class="section-title" style="font-size:15px;font-weight:600;color:var(--tp)">Recent Activity</div></div>
+          <div class="timeline-list">
+            {% for e in profile_activity %}
+            <div class="tl-item"><div class="tl-dot" style="background:{{ e.dot_color }}"></div><div class="tl-body"><div class="tl-label">{{ e.label }}</div><div class="tl-sub">{{ e.sub }}</div><div class="tl-time">{{ e.created_at|friendly_time }}</div></div></div>
+            {% empty %}
+            <div class="field-hint">No activity yet — capture a memory or ask the AI Assistant something to get started.</div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+
+      <!-- EXPORT DATA -->
+      <div class="tab-panel" data-group="profile" data-name="export">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-download"></i></div><div><div class="sc-title">Export Your Data</div><div class="sc-sub">Download a copy of everything stored in your MemoryVault</div></div></div>
+
+          <div class="export-row">
+            <div class="export-meta"><div class="export-icon"><i class="ti ti-file-zip"></i></div><div><div class="export-title">Full Data Export (JSON)</div><div class="export-desc">All memories, collections, tags &amp; metadata</div></div></div>
+            <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i>Export</button>
+          </div>
+          <div class="export-row">
+            <div class="export-meta"><div class="export-icon"><i class="ti ti-file-text"></i></div><div><div class="export-title">Memories Only (CSV)</div><div class="export-desc">Spreadsheet-friendly export of all memory entries</div></div></div>
+            <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i>Export</button>
+          </div>
+          <div class="export-row">
+            <div class="export-meta"><div class="export-icon"><i class="ti ti-chart-bar"></i></div><div><div class="export-title">Analytics Report (PDF)</div><div class="export-desc">Usage stats, charts, and achievements summary</div></div></div>
+            <button class="btn btn-secondary btn-sm"><i class="ti ti-download"></i>Export</button>
+          </div>
+          <div class="field-hint" style="margin-top:8px">Exports are bundled and emailed to {{ request.user.email|default:request.user.username }} as a secure download link, typically within a few minutes.</div>
+        </div>
+      </div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vault/js/account-pages.js' %}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const gctx = document.getElementById('growthChart').getContext('2d');
+new Chart(gctx, {
+  type: 'line',
+  data: {
+    labels: {{ growth_labels|safe }},
+    datasets: [{
+      label: 'Total Memories',
+      data: {{ growth_data|safe }},
+      borderColor: '#8B5CF6',
+      backgroundColor: 'rgba(139,92,246,.12)',
+      fill: true,
+      tension: .4,
+      pointRadius: 3,
+      pointBackgroundColor: '#7C3AED',
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { backgroundColor:'#181A33', borderColor:'#2A2D4D', borderWidth:1, titleColor:'#F8FAFC', bodyColor:'#A1A8C3', padding:10, cornerRadius:8 } },
+    scales: {
+      x: { grid: { display:false }, ticks: { color:'#6B7290', font:{size:11,family:'Inter'} } },
+      y: { grid: { color:'rgba(33,35,63,.8)' }, ticks: { color:'#6B7290', font:{size:11,family:'Inter'}, maxTicksLimit:5 } }
+    }
+  }
+});
+</script>
+{% endblock %}

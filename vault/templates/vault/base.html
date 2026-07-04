@@ -1,0 +1,203 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MemoryVault AI — {% block title %}Dashboard{% endblock %}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="{% static 'vault/css/theme.css' %}">
+<link rel="stylesheet" href="{% static 'vault/css/app-shell.css' %}">
+<link rel="stylesheet" href="{% static 'vault/css/polish.css' %}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
+
+<div class="app">
+
+  <!-- ── SIDEBAR ───────────────────────────────────────────── -->
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main navigation">
+
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="logo-mark" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M9 2C5.13 2 2 5.13 2 9s3.13 7 7 7 7-3.13 7-7-3.13-7-7-7zm0 3c.83 0 1.5.67 1.5 1.5S9.83 8 9 8s-1.5-.67-1.5-1.5S8.17 5 9 5zm0 8c-1.75 0-3.29-.9-4.2-2.26.02-1.39 2.8-2.16 4.2-2.16 1.4 0 4.18.77 4.2 2.16C12.29 12.1 10.75 13 9 13z" fill="white"/>
+        </svg>
+      </div>
+      <div class="logo-text">
+        <strong>MemoryVault</strong>
+        <span>AI Second Brain</span>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <form class="sidebar-search" method="get" action="{% url 'vault:search' %}">
+      <i class="ti ti-search s-icon" aria-hidden="true"></i>
+      <input type="search" name="q" placeholder="Search memories…" aria-label="Search memories">
+      <span class="kbd" aria-hidden="true">⌘K</span>
+    </form>
+
+    <!-- MAIN nav group -->
+    <div class="nav-section">
+      <div class="nav-label">Main</div>
+      <a href="{% url 'vault:dashboard' %}" class="nav-item{% if active_nav == 'dashboard' %} active{% endif %}" role="link" tabindex="0"{% if active_nav == 'dashboard' %} aria-current="page"{% endif %}>
+        <span class="nav-icon"><i class="ti ti-layout-dashboard" aria-hidden="true"></i></span>
+        <span class="nav-text">Dashboard</span>
+      </a>
+      <a href="{% url 'vault:memories' %}" class="nav-item{% if active_nav == 'memories' %} active{% endif %}" role="link" tabindex="0"{% if active_nav == 'memories' %} aria-current="page"{% endif %}>
+        <span class="nav-icon"><i class="ti ti-notes" aria-hidden="true"></i></span>
+        <span class="nav-text">Memories</span>
+      </a>
+      <a href="#" class="nav-item{% if active_nav == 'timeline' %} active{% endif %}" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-timeline" aria-hidden="true"></i></span>
+        <span class="nav-text">Timeline</span>
+      </a>
+      {% if active_nav == 'productivity' %}
+      <div class="nav-item" data-page="tasks" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-checklist" aria-hidden="true"></i></span>
+        <span class="nav-text">Tasks</span>
+        <span class="nav-badge" id="taskBadge">0</span>
+      </div>
+      <div class="nav-item active" data-page="calendar" role="link" tabindex="0" aria-current="page">
+        <span class="nav-icon"><i class="ti ti-calendar" aria-hidden="true"></i></span>
+        <span class="nav-text">Calendar</span>
+      </div>
+      {% else %}
+      <a href="{% url 'vault:productivity' %}?tab=tasks" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-checklist" aria-hidden="true"></i></span>
+        <span class="nav-text">Tasks</span>
+        <span class="nav-badge" id="taskBadge">0</span>
+      </a>
+      <a href="{% url 'vault:productivity' %}" class="nav-item" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-calendar" aria-hidden="true"></i></span>
+        <span class="nav-text">Calendar</span>
+      </a>
+      {% endif %}
+      <a href="#" class="nav-item{% if active_nav == 'collections' %} active{% endif %}" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-folders" aria-hidden="true"></i></span>
+        <span class="nav-text">Collections</span>
+      </a>
+      <a href="{% url 'vault:categories' %}" class="nav-item{% if active_nav == 'categories' %} active{% endif %}" role="link" tabindex="0"{% if active_nav == 'categories' %} aria-current="page"{% endif %}>
+        <span class="nav-icon"><i class="ti ti-tag" aria-hidden="true"></i></span>
+        <span class="nav-text">Categories</span>
+      </a>
+    </div>
+
+    <!-- INTELLIGENCE nav group -->
+    <div class="nav-section">
+      <div class="nav-label">Intelligence</div>
+      <a href="{% url 'vault:ai_assistant' %}" class="nav-item{% if active_nav == 'ai_assistant' %} active{% endif %}" role="link" tabindex="0"{% if active_nav == 'ai_assistant' %} aria-current="page"{% endif %}>
+        <span class="nav-icon"><i class="ti ti-sparkles" aria-hidden="true"></i></span>
+        <span class="nav-text">AI Assistant</span>
+      </a>
+      <a href="{% url 'vault:search' %}" class="nav-item{% if active_nav == 'search' %} active{% endif %}" role="link" tabindex="0"{% if active_nav == 'search' %} aria-current="page"{% endif %}>
+        <span class="nav-icon"><i class="ti ti-search" aria-hidden="true"></i></span>
+        <span class="nav-text">Search</span>
+      </a>
+      <a href="#" class="nav-item{% if active_nav == 'analytics' %} active{% endif %}" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-chart-bar" aria-hidden="true"></i></span>
+        <span class="nav-text">Analytics</span>
+      </a>
+    </div>
+
+    <!-- ACCOUNT nav group -->
+    <div class="nav-section">
+      <div class="nav-label">Account</div>
+      <a href="{% url 'vault:profile' %}" class="nav-item{% if active_nav == 'profile' %} active{% endif %}" role="link" tabindex="0"{% if active_nav == 'profile' %} aria-current="page"{% endif %}>
+        <span class="nav-icon"><i class="ti ti-user" aria-hidden="true"></i></span>
+        <span class="nav-text">Profile</span>
+      </a>
+      <a href="#" class="nav-item{% if active_nav == 'notifications' %} active{% endif %}" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-bell" aria-hidden="true"></i></span>
+        <span class="nav-text">Notifications</span>
+      </a>
+      <a href="{% url 'vault:settings' %}" class="nav-item{% if active_nav == 'settings' %} active{% endif %}" role="link" tabindex="0"{% if active_nav == 'settings' %} aria-current="page"{% endif %}>
+        <span class="nav-icon"><i class="ti ti-settings" aria-hidden="true"></i></span>
+        <span class="nav-text">Settings</span>
+      </a>
+      <a href="#" class="nav-item{% if active_nav == 'trash' %} active{% endif %}" role="link" tabindex="0">
+        <span class="nav-icon"><i class="ti ti-trash" aria-hidden="true"></i></span>
+        <span class="nav-text">Trash</span>
+      </a>
+      <a href="{% url 'vault:help_center' %}" class="nav-item{% if active_nav == 'help_center' %} active{% endif %}" role="link" tabindex="0"{% if active_nav == 'help_center' %} aria-current="page"{% endif %}>
+        <span class="nav-icon"><i class="ti ti-help-circle" aria-hidden="true"></i></span>
+        <span class="nav-text">Help Center</span>
+      </a>
+    </div>
+
+    <!-- Footer -->
+    <div class="sidebar-footer">
+      <div class="ai-card" role="status" aria-live="polite">
+        <div class="ai-dot-wrap" aria-hidden="true">
+          <div class="ai-dot"></div>
+        </div>
+        <div class="ai-text">
+          <strong>AI Active</strong>
+          <small class="ai-desc">Processing memories in real-time</small>
+        </div>
+      </div>
+      <button class="collapse-btn" onclick="toggleSidebar()" aria-expanded="true" aria-label="Collapse sidebar" id="collapse-btn">
+        <i class="ti ti-chevrons-left collapse-icon" id="collapse-icon" aria-hidden="true"></i>
+        <span class="nav-text" style="font-size:12px;color:var(--tt)">Collapse</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- ── MAIN ─────────────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-title" id="topTitle">{% block topbar_title %}Dashboard{% endblock %}</div>
+      <form class="topbar-search" method="get" action="{% url 'vault:search' %}">
+        <input type="search" name="q" placeholder="Search anything…" aria-label="Global search">
+        <span class="kbd" aria-hidden="true">⌘K</span>
+      </form>
+      <button class="capture-btn ripple-surface" id="globalCapture" aria-label="Capture new memory">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        Capture
+      </button>
+      <button class="icon-btn" aria-label="Notifications">
+        <i class="ti ti-bell" aria-hidden="true"></i>
+        <span class="notif-dot" aria-hidden="true"></span>
+      </button>
+      {% if request.user.is_authenticated %}
+        <div class="avatar" role="button" tabindex="0" aria-label="User menu — {{ request.user.get_full_name|default:request.user.username }}" title="{{ request.user.get_full_name|default:request.user.username }}" style="background:{{ request.user.profile.avatar_color }}">{{ request.user.profile.initials }}</div>
+      {% else %}
+        <div class="avatar" role="button" tabindex="0" aria-label="User menu" title="Guest">MM</div>
+      {% endif %}
+    </header>
+
+    <!-- Scrollable content -->
+    <main class="content" id="main-content">
+      {% block content %}{% endblock %}
+    </main><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+  /* ── Sidebar toggle ─────────────────────────────────────── */
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const btn     = document.getElementById('collapse-btn');
+    const isCollapsed = sidebar.classList.toggle('collapsed');
+    btn.setAttribute('aria-expanded', String(!isCollapsed));
+    btn.setAttribute('aria-label', isCollapsed ? 'Expand sidebar' : 'Collapse sidebar');
+  }
+
+  /* Keyboard: Enter/Space on nav items */
+  document.querySelectorAll('.nav-item, .qa-tile, .avatar').forEach(el => {
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); }
+    });
+  });
+</script>
+<script src="{% static 'vault/js/polish.js' %}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

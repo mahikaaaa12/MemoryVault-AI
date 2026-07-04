@@ -1,0 +1,57 @@
+{% extends 'vault/auth/auth_base.html' %}
+{% block title %}Reset Password{% endblock %}
+
+{% block auth_content %}
+<h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px; text-align: center;">Set new password</h2>
+<p style="font-size: 14px; color: var(--ts); text-align: center; margin-bottom: 24px;">Please choose a new, secure password for your account</p>
+
+{% if success %}
+<div style="background: rgba(34, 197, 94, 0.1); border: 1px solid var(--ok); color: #A7F3D0; border-radius: var(--radius-md); padding: 12px; font-size: 13px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px;">
+    <i class="ti ti-circle-check" style="color: var(--ok); font-size: 16px;"></i>
+    <span>{{ success }}</span>
+</div>
+<a href="{% url 'login' %}" class="btn-auth" style="text-decoration: none;">
+    <span>Proceed to Login</span>
+</a>
+{% else %}
+
+{% if error %}
+<div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--err); color: #FCA5A5; border-radius: var(--radius-md); padding: 12px; font-size: 13px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+    <i class="ti ti-alert-circle" style="color: var(--err); font-size: 16px;"></i>
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<form method="POST" action="">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="otp">Verification Code</label>
+        <div class="input-wrapper">
+            <input type="text" name="otp" id="otp" placeholder="Enter the 6-digit code" inputmode="numeric" maxlength="6" required>
+            <i class="ti ti-shield-check"></i>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="password">New Password</label>
+        <div class="input-wrapper">
+            <input type="password" name="password" id="password" placeholder="Enter new password" required>
+            <i class="ti ti-lock"></i>
+        </div>
+    </div>
+    
+    <div class="form-group" style="margin-bottom: 24px;">
+        <label for="confirm_password">Confirm New Password</label>
+        <div class="input-wrapper">
+            <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter new password" required>
+            <i class="ti ti-lock"></i>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-auth">
+        <span>Reset Password</span>
+        <i class="ti ti-check"></i>
+    </button>
+</form>
+{% endif %}
+{% endblock %}

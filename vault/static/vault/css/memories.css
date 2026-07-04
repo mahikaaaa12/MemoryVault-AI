@@ -1,0 +1,229 @@
+/* ============================================================
+   Memories page — Step 12
+   Reuses tokens from theme.css. Modal/field pattern mirrors the
+   task modal on the Productivity page for visual consistency.
+   (Shared rules will be consolidated in Step 16 — Optimization.)
+   ============================================================ */
+
+/* ── Stat row (Step 13a) ──────────────────────────────────── */
+.mem-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 16px 0 24px;
+}
+.mem-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--surface, #12132A);
+  border: 1px solid var(--bs, #21233F);
+  border-radius: var(--radius-md, 10px);
+}
+.mem-stat i { font-size: 14px; }
+.mem-stat strong {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--tp, #F8FAFC);
+  font-variant-numeric: tabular-nums;
+}
+.mem-stat span { font-size: 12px; color: var(--tt, #6B7290); }
+
+/* ── Tabs (Step 13a) ──────────────────────────────────────── */
+.mem-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--bs, #21233F);
+}
+.mem-tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--ts, #A1A8C3);
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color .15s;
+  white-space: nowrap;
+}
+.mem-tab i { color: var(--tt, #6B7290); font-size: 14px; }
+.mem-tab:hover { color: var(--tp, #F8FAFC); }
+.mem-tab.active { color: var(--a4, #9F75F0); border-bottom-color: var(--a6, #7C3AED); }
+.mem-tab.active i { color: var(--a4, #9F75F0); }
+.mem-tab .count { font-size: 11px; color: var(--tt, #6B7290); }
+
+/* ── Archived flag / action state ─────────────────────────── */
+.mem-archived-flag {
+  font-size: 11px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  background: rgba(161,168,195,.1);
+  border-radius: 4px;
+  color: var(--tt, #6B7290);
+  font-weight: 500;
+  vertical-align: middle;
+}
+.mem-actions .icon-btn.archived { color: var(--a4, #9F75F0); }
+
+/* ── Trash rows (Step 13a) ────────────────────────────────── */
+.trash-list { display: flex; flex-direction: column; gap: 10px; }
+.trash-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  background: var(--surface, #12132A);
+  border: 1px solid var(--bs, #21233F);
+  border-radius: var(--radius-lg, 14px);
+}
+.trash-row .mem-icon { flex-shrink: 0; }
+.trash-body { flex: 1; min-width: 0; }
+.trash-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--tp, #F8FAFC);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.trash-meta { font-size: 12px; color: var(--tt, #6B7290); margin-top: 2px; }
+.trash-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.trash-actions form { display: contents; }
+
+/* ── Card grid ────────────────────────────────────────────── */
+.memory-grid { display: flex; flex-direction: column; gap: 10px; }
+
+/* Extra flex slot for per-card actions, sits beside .mem-icon/.mem-body */
+.mem-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.mem-actions .icon-btn {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ts, #A1A8C3);
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mem-actions form { display: contents; }
+
+.mem-actions .icon-btn.active { color: var(--favorite-gold, #FBBF24); }
+.mem-actions .icon-btn.pinned { color: var(--a6, #7C3AED); }
+.mem-actions .icon-btn.danger:hover { color: var(--err, #EF4444); }
+
+.mem-pin-flag {
+  font-size: 10px;
+  color: var(--a6, #7C3AED);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-right: 6px;
+}
+
+/* ── Modal (create / edit) ───────────────────────────────────
+   Same component contract as productivity.css's task modal. */
+.modal-scrim {
+  position: fixed; inset: 0;
+  background: rgba(5,6,12,.6);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+.modal-scrim.show { display: flex; }
+
+.modal {
+  width: 560px;
+  max-width: 92vw;
+  max-height: 86vh;
+  overflow-y: auto;
+  background: rgba(18,19,42,.9);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 20px;
+  box-shadow: 0 16px 48px rgba(0,0,0,.55);
+}
+
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--bs, #21233F);
+}
+.modal-head h3 { font-size: 17px; font-weight: 700; }
+
+.modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 16px; }
+
+.modal-foot {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 16px 22px;
+  border-top: 1px solid var(--bs, #21233F);
+}
+
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+/* Fields inside the modal reuse .field from account-pages.css, plus: */
+.field select {
+  width: 100%;
+  background: var(--bg, #0E1020);
+  border: 1px solid var(--bd, #2A2D4D);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13.5px;
+  color: var(--tp, #F8FAFC);
+  font-family: inherit;
+  outline: none;
+}
+
+.field input[type="file"] {
+  font-size: 12.5px;
+  color: var(--ts, #A1A8C3);
+}
+
+/* AI Summary / Tags "Suggest" buttons — Step 15b */
+.field-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.field-label-row label { margin: 0; }
+.ai-suggest-btn { color: #9F75F0; }
+.ai-suggest-btn:disabled { opacity: .6; cursor: default; }
+.ai-spin { animation: mv-ai-spin .8s linear infinite; display: inline-block; }
+@keyframes mv-ai-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Pagination — Memories list (Performance Audit) */
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 20px;
+}
+.pagination-status {
+  color: var(--ts, #A1A8C3);
+  font-size: 13px;
+}

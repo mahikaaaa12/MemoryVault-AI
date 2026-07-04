@@ -1,0 +1,184 @@
+{% extends "vault/base.html" %}
+{% load static %}
+
+{% block title %}Settings{% endblock %}
+{% block topbar_title %}Settings{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/account-pages.css' %}">
+{% endblock %}
+
+{% block content %}
+      <div class="page-header">
+        <div>
+          <h1>Settings</h1>
+          <p>Customize MemoryVault to match how you think and work</p>
+        </div>
+        <button class="btn btn-primary" type="submit" form="settingsForm" name="form_id" value="preferences"><i class="ti ti-check"></i>Save Changes</button>
+      </div>
+
+      {% if messages %}
+        {% for message in messages %}
+          <div class="field-hint" role="status" style="margin:4px 0 16px;color:{% if message.tags == 'error' %}var(--err,#EF4444){% else %}var(--ok,#22C55E){% endif %}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+
+      <form method="post" id="settingsForm" action="{% url 'vault:settings' %}">
+      {% csrf_token %}
+      <input type="hidden" name="active_tab" id="activeTabField" value="{{ active_tab }}">
+
+      <div class="seg-tabs" role="tablist" aria-label="Settings sections">
+        <button type="button" class="seg-tab{% if active_tab == 'appearance' %} active{% endif %}" data-group="settings" onclick="showTab('settings','appearance',this);setActiveTab('appearance')"><i class="ti ti-palette"></i>Appearance</button>
+        <button type="button" class="seg-tab{% if active_tab == 'notifications' %} active{% endif %}" data-group="settings" onclick="showTab('settings','notifications',this);setActiveTab('notifications')"><i class="ti ti-bell"></i>Notifications</button>
+        <button type="button" class="seg-tab{% if active_tab == 'ai' %} active{% endif %}" data-group="settings" onclick="showTab('settings','ai',this);setActiveTab('ai')"><i class="ti ti-sparkles"></i>AI Preferences</button>
+        <button type="button" class="seg-tab{% if active_tab == 'security' %} active{% endif %}" data-group="settings" onclick="showTab('settings','security',this);setActiveTab('security')"><i class="ti ti-shield-lock"></i>Security</button>
+        <button type="button" class="seg-tab{% if active_tab == 'privacy' %} active{% endif %}" data-group="settings" onclick="showTab('settings','privacy',this);setActiveTab('privacy')"><i class="ti ti-lock"></i>Privacy</button>
+        <button type="button" class="seg-tab{% if active_tab == 'accessibility' %} active{% endif %}" data-group="settings" onclick="showTab('settings','accessibility',this);setActiveTab('accessibility')"><i class="ti ti-accessible"></i>Accessibility</button>
+      </div>
+
+      <!-- APPEARANCE -->
+      <div class="tab-panel{% if active_tab == 'appearance' %} active{% endif %}" data-group="settings" data-name="appearance">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-palette"></i></div><div><div class="sc-title">Appearance</div><div class="sc-sub">Control how MemoryVault looks on your screen</div></div></div>
+          <div class="toggle-row"><div><div class="toggle-label">Dark mode</div><div class="toggle-desc">MemoryVault is dark-first by design — disable for a light theme</div></div><label class="switch"><input type="checkbox" {% if profile_obj.appearance_preferences.dark_mode %}checked{% endif %} id="darkMode" name="darkMode"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Compact view</div><div class="toggle-desc">Reduce padding and card sizes to fit more on screen</div></div><label class="switch"><input type="checkbox" {% if profile_obj.appearance_preferences.compact_view %}checked{% endif %} id="compactView" name="compactView"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Animated transitions</div><div class="toggle-desc">Enable card fade-ins and motion across the app</div></div><label class="switch"><input type="checkbox" {% if profile_obj.appearance_preferences.animated_transitions %}checked{% endif %} id="animTrans" name="animTrans"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-color-swatch"></i></div><div><div class="sc-title">Accent Color</div><div class="sc-sub">Choose the primary highlight color used across the app</div></div></div>
+          <input type="hidden" name="accent_color" id="accentColorField" value="{{ profile_obj.appearance_preferences.accent_color }}">
+          <div class="pill-group" id="accentColorGroup">
+            <button type="button" class="pill-opt{% if profile_obj.appearance_preferences.accent_color == '#7C3AED' %} on{% endif %}" data-color="#7C3AED" onclick="setAccent(this)" style="border-color:#7C3AED;color:#9F75F0"><i class="ti ti-circle-filled" style="color:#7C3AED"></i> Violet</button>
+            <button type="button" class="pill-opt{% if profile_obj.appearance_preferences.accent_color == '#3B82F6' %} on{% endif %}" data-color="#3B82F6" onclick="setAccent(this)"><i class="ti ti-circle-filled" style="color:#3B82F6"></i> Blue</button>
+            <button type="button" class="pill-opt{% if profile_obj.appearance_preferences.accent_color == '#10B981' %} on{% endif %}" data-color="#10B981" onclick="setAccent(this)"><i class="ti ti-circle-filled" style="color:#10B981"></i> Emerald</button>
+            <button type="button" class="pill-opt{% if profile_obj.appearance_preferences.accent_color == '#EC4899' %} on{% endif %}" data-color="#EC4899" onclick="setAccent(this)"><i class="ti ti-circle-filled" style="color:#EC4899"></i> Pink</button>
+          </div>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-id-badge-2"></i></div><div><div class="sc-title">Profile</div><div class="sc-sub">Update your display name and contact email</div></div></div>
+          <div class="field"><label>Display Name</label><input type="text" name="display_name" value="{{ request.user.first_name|default:request.user.username }}"></div>
+          <div class="field"><label>Email</label><input type="email" name="email" value="{{ request.user.email }}"></div>
+        </div>
+      </div>
+
+      <!-- NOTIFICATIONS -->
+      <div class="tab-panel{% if active_tab == 'notifications' %} active{% endif %}" data-group="settings" data-name="notifications">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-bell"></i></div><div><div class="sc-title">Notifications</div><div class="sc-sub">Choose what MemoryVault keeps you posted about</div></div></div>
+          <div class="toggle-row"><div><div class="toggle-label">Daily memory digest</div><div class="toggle-desc">A short email summary of what you captured each day</div></div><label class="switch"><input type="checkbox" {% if profile_obj.notification_preferences.daily_digest %}checked{% endif %} id="dailyDigest" name="dailyDigest"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Weekly insights report</div><div class="toggle-desc">AI-generated trends and patterns from your week</div></div><label class="switch"><input type="checkbox" {% if profile_obj.notification_preferences.weekly_report %}checked{% endif %} id="weeklyInsights" name="weeklyInsights"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Memory anniversary reminders</div><div class="toggle-desc">Get nudged when a memory from a year ago resurfaces</div></div><label class="switch"><input type="checkbox" {% if profile_obj.notification_preferences.anniversary_reminders %}checked{% endif %} id="anniversary" name="anniversary"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">In-app notification bell</div><div class="toggle-desc">Show unread badges on the bell icon in the top bar</div></div><label class="switch"><input type="checkbox" {% if profile_obj.notification_preferences.bell_badge %}checked{% endif %} id="bellBadge" name="bellBadge"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Push notifications (mobile)</div><div class="toggle-desc">Receive alerts on your phone when AI surfaces something important</div></div><label class="switch"><input type="checkbox" {% if profile_obj.notification_preferences.push_notifications %}checked{% endif %} id="pushNotif" name="pushNotif"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+        </div>
+      </div>
+
+      <!-- AI PREFERENCES -->
+      <div class="tab-panel{% if active_tab == 'ai' %} active{% endif %}" data-group="settings" data-name="ai">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-sparkles"></i></div><div><div class="sc-title">AI Preferences</div><div class="sc-sub">Control how the AI assists with your memories</div></div></div>
+          <div class="toggle-row"><div><div class="toggle-label">Auto-summarize memories</div><div class="toggle-desc">Generate a short AI description/snippet for every captured memory</div></div><label class="switch"><input type="checkbox" {% if profile_obj.ai_preferences.auto_summarize %}checked{% endif %} id="autoSummarize" name="autoSummarize"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Suggest related memories</div><div class="toggle-desc">Surface connected memories while you're viewing one</div></div><label class="switch"><input type="checkbox" {% if profile_obj.ai_preferences.suggest_related %}checked{% endif %} id="suggestRelated" name="suggestRelated"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">AI-powered tagging</div><div class="toggle-desc">Automatically suggest and assign tags on capture</div></div><label class="switch"><input type="checkbox" {% if profile_obj.ai_preferences.ai_tagging %}checked{% endif %} id="aiTagging" name="aiTagging"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Proactive insights</div><div class="toggle-desc">Let the AI surface patterns on the Dashboard without asking</div></div><label class="switch"><input type="checkbox" {% if profile_obj.ai_preferences.proactive_insights %}checked{% endif %} id="proactiveInsights" name="proactiveInsights"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-message-2"></i></div><div><div class="sc-title">AI Assistant Tone</div><div class="sc-sub">How the AI Assistant should phrase its responses</div></div></div>
+          <input type="hidden" name="ai_tone" id="aiToneField" value="{{ profile_obj.ai_preferences.ai_tone }}">
+          <div class="pill-group" id="aiToneGroup">
+            <button type="button" class="pill-opt{% if profile_obj.ai_preferences.ai_tone == 'concise' %} on{% endif %}" data-tone="concise" onclick="setTone(this)">Concise</button>
+            <button type="button" class="pill-opt{% if profile_obj.ai_preferences.ai_tone == 'conversational' %} on{% endif %}" data-tone="conversational" onclick="setTone(this)">Conversational</button>
+            <button type="button" class="pill-opt{% if profile_obj.ai_preferences.ai_tone == 'detailed' %} on{% endif %}" data-tone="detailed" onclick="setTone(this)">Detailed</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SECURITY -->
+      <div class="tab-panel{% if active_tab == 'security' %} active{% endif %}" data-group="settings" data-name="security">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-shield-lock"></i></div><div><div class="sc-title">Password &amp; Authentication</div><div class="sc-sub">Keep your account secure</div></div></div>
+          <div class="field"><label>Current Password</label><input type="password" name="current_password" placeholder="••••••••"></div>
+          <div class="field"><label>New Password</label><input type="password" name="new_password" placeholder="••••••••"></div>
+          <button class="btn btn-secondary" style="width:fit-content" type="submit" name="form_id" value="password"><i class="ti ti-key"></i>Update Password</button>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-device-mobile"></i></div><div><div class="sc-title">Two-Factor Authentication</div><div class="sc-sub">Add an extra layer of protection at login</div></div></div>
+          <div class="toggle-row"><div><div class="toggle-label">Require 2FA at sign-in</div><div class="toggle-desc">Use an authenticator app to verify it's really you</div></div><label class="switch"><input type="checkbox"  id="twofa"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-devices"></i></div><div><div class="sc-title">Active Sessions</div><div class="sc-sub">Devices currently signed in to your account</div></div></div>
+          <div class="detail-row"><span class="detail-key"><i class="ti ti-world" style="margin-right:6px"></i>{{ current_session_label }}</span><span class="detail-val" style="color:var(--ok);font-size:12px">This device</span></div>
+          <div class="field-hint" style="margin-top:8px">MemoryVault doesn't track other signed-in devices yet — this is the only session tied to your account right now.</div>
+        </div>
+        <div class="section-card danger">
+          <div class="sc-header"><div class="sc-icon danger"><i class="ti ti-alert-triangle"></i></div><div><div class="sc-title">Danger Zone</div><div class="sc-sub">These actions are permanent and cannot be undone</div></div></div>
+          <div class="export-row">
+            <div class="export-meta"><div class="export-icon"><i class="ti ti-download"></i></div><div><div class="export-title">Export all data</div><div class="export-desc">Download everything before making any changes</div></div></div>
+            <a href="{% url 'vault:profile' %}?tab=export" class="btn btn-secondary btn-sm"><i class="ti ti-download"></i>Export</a>
+          </div>
+          <div class="export-row">
+            <div class="export-meta"><div class="export-icon" style="background:rgba(239,68,68,.12);color:var(--err)"><i class="ti ti-trash"></i></div><div><div class="export-title">Delete account</div><div class="export-desc">Permanently delete your account and all memories</div></div></div>
+            <button class="btn btn-destructive btn-sm" type="submit" name="form_id" value="delete_account" onclick="return confirm('This permanently deletes your account and every memory, task, and collection you own. This cannot be undone. Continue?')"><i class="ti ti-trash"></i>Delete account</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- PRIVACY -->
+      <div class="tab-panel{% if active_tab == 'privacy' %} active{% endif %}" data-group="settings" data-name="privacy">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-lock"></i></div><div><div class="sc-title">Privacy</div><div class="sc-sub">Control what MemoryVault shares and stores</div></div></div>
+          <div class="toggle-row"><div><div class="toggle-label">Allow AI model improvement</div><div class="toggle-desc">Let anonymized captures help improve MemoryVault's AI</div></div><label class="switch"><input type="checkbox" {% if profile_obj.privacy_preferences.ai_improve %}checked{% endif %} id="aiImprove" name="aiImprove"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Usage analytics</div><div class="toggle-desc">Share anonymous product usage data to help us improve</div></div><label class="switch"><input type="checkbox" {% if profile_obj.privacy_preferences.usage_analytics %}checked{% endif %} id="usageAnalytics" name="usageAnalytics"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Public profile</div><div class="toggle-desc">Allow others to view your achievements and shared collections</div></div><label class="switch"><input type="checkbox" {% if profile_obj.privacy_preferences.public_profile %}checked{% endif %} id="publicProfile" name="publicProfile"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Third-party integrations</div><div class="toggle-desc">Permit connected apps to read memory metadata</div></div><label class="switch"><input type="checkbox" {% if profile_obj.privacy_preferences.third_party %}checked{% endif %} id="thirdParty" name="thirdParty"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-file-shield"></i></div><div><div class="sc-title">Data Retention</div><div class="sc-sub">How long deleted items stay in Trash before permanent removal</div></div></div>
+          <input type="hidden" name="data_retention_days" id="retentionField" value="{{ profile_obj.privacy_preferences.data_retention_days }}">
+          <div class="pill-group" id="retentionGroup">
+            <button type="button" class="pill-opt{% if profile_obj.privacy_preferences.data_retention_days == '7' %} on{% endif %}" data-days="7" onclick="setRetention(this)">7 days</button>
+            <button type="button" class="pill-opt{% if profile_obj.privacy_preferences.data_retention_days == '30' %} on{% endif %}" data-days="30" onclick="setRetention(this)">30 days</button>
+            <button type="button" class="pill-opt{% if profile_obj.privacy_preferences.data_retention_days == '90' %} on{% endif %}" data-days="90" onclick="setRetention(this)">90 days</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ACCESSIBILITY -->
+      <div class="tab-panel{% if active_tab == 'accessibility' %} active{% endif %}" data-group="settings" data-name="accessibility">
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-accessible"></i></div><div><div class="sc-title">Accessibility</div><div class="sc-sub">Make MemoryVault easier to read and navigate</div></div></div>
+          <div class="toggle-row"><div><div class="toggle-label">Reduce motion</div><div class="toggle-desc">Turn off shimmer, pulse, and slide animations</div></div><label class="switch"><input type="checkbox" {% if profile_obj.accessibility_preferences.reduce_motion %}checked{% endif %} id="reduceMotion" name="reduceMotion"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">High contrast text</div><div class="toggle-desc">Increase contrast between text and background surfaces</div></div><label class="switch"><input type="checkbox" {% if profile_obj.accessibility_preferences.high_contrast %}checked{% endif %} id="highContrast" name="highContrast"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Always show keyboard focus rings</div><div class="toggle-desc">Keep the focus outline visible even when using a mouse</div></div><label class="switch"><input type="checkbox" {% if profile_obj.accessibility_preferences.focus_rings %}checked{% endif %} id="focusRings" name="focusRings"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+          <div class="toggle-row"><div><div class="toggle-label">Screen reader optimizations</div><div class="toggle-desc">Add extra ARIA landmarks and descriptive labels</div></div><label class="switch"><input type="checkbox" {% if profile_obj.accessibility_preferences.screen_reader %}checked{% endif %} id="screenReader" name="screenReader"><span class="switch-track"></span><span class="switch-thumb"></span></label></div>
+        </div>
+        <div class="section-card">
+          <div class="sc-header"><div class="sc-icon"><i class="ti ti-text-size"></i></div><div><div class="sc-title">Text Size</div><div class="sc-sub">Adjust the base font size used across the app</div></div></div>
+          <input type="hidden" name="text_size" id="textSizeField" value="{{ profile_obj.appearance_preferences.text_size }}">
+          <div class="pill-group" id="textSizeGroup">
+            <button type="button" class="pill-opt{% if profile_obj.appearance_preferences.text_size == 'small' %} on{% endif %}" data-size="small" onclick="setTextSize(this)">Small</button>
+            <button type="button" class="pill-opt{% if profile_obj.appearance_preferences.text_size == 'medium' %} on{% endif %}" data-size="medium" onclick="setTextSize(this)">Default</button>
+            <button type="button" class="pill-opt{% if profile_obj.appearance_preferences.text_size == 'large' %} on{% endif %}" data-size="large" onclick="setTextSize(this)">Large</button>
+            <button type="button" class="pill-opt{% if profile_obj.appearance_preferences.text_size == 'xlarge' %} on{% endif %}" data-size="xlarge" onclick="setTextSize(this)">Extra Large</button>
+          </div>
+        </div>
+      </div>
+      </form>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'vault/js/account-pages.js' %}"></script>
+<script>
+function setActiveTab(name){ document.getElementById('activeTabField').value = name; }
+function selectPill(groupId, fieldId, btn, attr){
+  document.getElementById(groupId).querySelectorAll('.pill-opt').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById(fieldId).value = btn.dataset[attr];
+}
+function setAccent(btn){ selectPill('accentColorGroup','accentColorField',btn,'color'); }
+function setTone(btn){ selectPill('aiToneGroup','aiToneField',btn,'tone'); }
+function setRetention(btn){ selectPill('retentionGroup','retentionField',btn,'days'); }
+function setTextSize(btn){ selectPill('textSizeGroup','textSizeField',btn,'size'); }
+</script>
+{% endblock %}

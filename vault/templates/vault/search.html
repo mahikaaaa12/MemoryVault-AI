@@ -1,0 +1,199 @@
+{% extends "vault/base.html" %}
+{% load static %}
+{% load vault_extras %}
+
+{% block title %}Search{% endblock %}
+{% block topbar_title %}Search{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'vault/css/account-pages.css' %}">
+<link rel="stylesheet" href="{% static 'vault/css/memories.css' %}">
+<link rel="stylesheet" href="{% static 'vault/css/search.css' %}">
+{% endblock %}
+
+{% block content %}
+  <div class="search-page">
+
+    <!-- ── HERO SEARCH BAR ──────────────────────────────────── -->
+    <form method="get" action="{% url 'vault:search' %}" class="search-hero-row">
+      <div class="search-hero-input">
+        <i class="ti ti-search" aria-hidden="true"></i>
+        <input type="search" name="q" id="searchInput" value="{{ query }}"
+               placeholder="Search titles, content, tags…" autocomplete="off">
+        {% if query %}
+          <a href="{% url 'vault:search' %}" class="search-clear-btn" aria-label="Clear search"><i class="ti ti-x" aria-hidden="true"></i></a>
+        {% endif %}
+      </div>
+      <button type="button" class="ai-search-toggle" disabled title="AI Search arrives in Step 15">
+        <i class="ti ti-sparkles" aria-hidden="true"></i>AI Search
+      </button>
+      <!-- Preserve active filters across a new query submission -->
+      {% if type_filter %}<input type="hidden" name="type" value="{{ type_filter }}">{% endif %}
+      {% if category_filter %}<input type="hidden" name="category" value="{{ category_filter }}">{% endif %}
+      {% if range_filter != 'any' %}<input type="hidden" name="range" value="{{ range_filter }}">{% endif %}
+      {% if favorites_only %}<input type="hidden" name="favorites" value="1">{% endif %}
+      {% if pinned_only %}<input type="hidden" name="pinned" value="1">{% endif %}
+    </form>
+
+    <!-- ── FILTERS ──────────────────────────────────────────── -->
+    <details class="search-filters" {% if filters_open %}open{% endif %}>
+      <summary><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>Filters</summary>
+      <form method="get" action="{% url 'vault:search' %}" class="search-filters-row" id="filtersForm">
+        {% if query %}<input type="hidden" name="q" value="{{ query }}">{% endif %}
+        <input type="hidden" name="range" id="rangeInput" value="{{ range_filter }}">
+        <input type="hidden" name="favorites" id="favoritesInput" value="{% if favorites_only %}1{% else %}0{% endif %}">
+        <input type="hidden" name="pinned" id="pinnedInput" value="{% if pinned_only %}1{% else %}0{% endif %}">
+
+        <select name="type" class="filter-select" onchange="this.form.submit()">
+          <option value="">All types</option>
+          {% for value, label in type_choices %}
+            <option value="{{ value }}"{% if type_filter == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+
+        <select name="category" class="filter-select" onchange="this.form.submit()">
+          <option value="">All categories</option>
+          {% for cat in browse_categories %}
+            <option value="{{ cat.name }}"{% if category_filter == cat.name %} selected{% endif %}>{{ cat.name }}</option>
+          {% endfor %}
+        </select>
+
+        <div class="range-pill-group">
+          {% for value, label in range_options %}
+            <button type="button" class="range-pill{% if range_filter == value %} active{% endif %}"
+                    onclick="document.getElementById('rangeInput').value='{{ value }}';document.getElementById('filtersForm').submit();">{{ label }}</button>
+          {% endfor %}
+        </div>
+
+        <button type="button" class="toggle-pill{% if favorites_only %} active{% endif %}"
+                onclick="document.getElementById('favoritesInput').value='{% if favorites_only %}0{% else %}1{% endif %}';document.getElementById('filtersForm').submit();">
+          <i class="ti ti-star" aria-hidden="true"></i>Favorites
+        </button>
+        <button type="button" class="toggle-pill{% if pinned_only %} active{% endif %}"
+                onclick="document.getElementById('pinnedInput').value='{% if pinned_only %}0{% else %}1{% endif %}';document.getElementById('filtersForm').submit();">
+          <i class="ti ti-pin" aria-hidden="true"></i>Pinned
+        </button>
+      </form>
+    </details>
+
+    {% if not query %}
+      <!-- ── BROWSE STATE (no query yet) ───────────────────────── -->
+      <div class="search-browse">
+
+        {% if recent_searches %}
+          <div class="search-section">
+            <div class="search-section-head">
+              <p class="search-section-label">Recent Searches</p>
+              <form method="post" action="{% url 'vault:search_clear_recent' %}">
+                {% csrf_token %}
+                <button type="submit" class="clear-all-btn">Clear all</button>
+              </form>
+            </div>
+            <div class="chip-row">
+              {% for term in recent_searches %}
+                <span class="recent-chip">
+                  <a href="?q={{ term|urlencode }}"><i class="ti ti-clock" aria-hidden="true"></i>{{ term }}</a>
+                  <form method="post" action="{% url 'vault:search_remove_recent' %}">
+                    {% csrf_token %}<input type="hidden" name="term" value="{{ term }}">
+                    <button type="submit" aria-label="Remove &quot;{{ term }}&quot; from recent searches"><i class="ti ti-x" aria-hidden="true"></i></button>
+                  </form>
+                </span>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if popular_tags %}
+          <div class="search-section">
+            <p class="search-section-label">Popular Tags</p>
+            <div class="chip-row">
+              {% for tag in popular_tags %}
+                <a href="?q={{ tag.name|urlencode }}" class="recent-chip recent-chip--sm">
+                  <i class="ti ti-hash" aria-hidden="true"></i>{{ tag.name }} <span class="chip-count">{{ tag.cnt }}</span>
+                </a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if browse_categories %}
+          <div class="search-section">
+            <p class="search-section-label">Browse by Category</p>
+            <div class="chip-row">
+              {% for cat in browse_categories %}
+                <a href="?category={{ cat.name|urlencode }}" class="category-chip{% if category_filter == cat.name %} active{% endif %}">{{ cat.name }}</a>
+              {% endfor %}
+            </div>
+          </div>
+        {% endif %}
+
+        {% if not recent_searches and not popular_tags and not browse_categories %}
+          <div class="empty-state">
+            <div class="empty-icon" aria-hidden="true"><i class="ti ti-search"></i></div>
+            <h3>Search your memories</h3>
+            <p>Type a query above to search titles, content, and tags.</p>
+          </div>
+        {% endif %}
+      </div>
+
+    {% else %}
+      <!-- ── RESULTS STATE ────────────────────────────────────── -->
+      <div class="search-results">
+        <p class="results-summary">
+          {{ result_count }} result{{ result_count|pluralize }} for &quot;{{ query }}&quot;
+        </p>
+
+        {% if results %}
+          <div class="result-list">
+            {% for memory in results %}
+              <a class="search-result-row" href="{% url 'vault:memory_edit' memory.pk %}">
+                <div class="mem-icon" style="background:{{ memory.type_bg }};color:{{ memory.type_color }}" aria-hidden="true">
+                  <i class="ti ti-{{ memory.type_icon }}"></i>
+                </div>
+                <div class="result-body">
+                  <div class="result-meta-row">
+                    <span class="result-type">{{ memory.get_type_display }}</span>
+                    <span class="result-category">· {{ memory.category }}</span>
+                    <span class="result-time">{{ memory.occurred_at|date:"M j, Y" }}</span>
+                  </div>
+                  <h3 class="result-title">{{ memory.title|highlight:query }}</h3>
+                  <p class="result-snippet">{{ memory.search_snippet|highlight:query }}</p>
+                  {% if memory.tags.all %}
+                    <div class="mem-tags">
+                      {% for tag in memory.tags.all|slice:":4" %}
+                        <span class="tag" style="background:rgba(59,130,246,.12);color:#3B82F6">{{ tag.name }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+              </a>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state">
+            <div class="empty-icon" aria-hidden="true"><i class="ti ti-search-off"></i></div>
+            <h3>No results found</h3>
+            <p>We couldn't find anything matching &quot;{{ query }}&quot;. Try a different term or adjust your filters.</p>
+          </div>
+        {% endif %}
+
+        {% if page_obj.paginator.num_pages > 1 %}
+          <nav class="pagination" aria-label="Search results pages">
+            {% if page_obj.has_previous %}
+              <a class="btn btn-secondary btn-sm" href="?{{ pagination_qs }}&page={{ page_obj.previous_page_number }}">
+                <i class="ti ti-chevron-left" aria-hidden="true"></i>Previous
+              </a>
+            {% endif %}
+            <span class="pagination-status">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            {% if page_obj.has_next %}
+              <a class="btn btn-secondary btn-sm" href="?{{ pagination_qs }}&page={{ page_obj.next_page_number }}">
+                Next<i class="ti ti-chevron-right" aria-hidden="true"></i>
+              </a>
+            {% endif %}
+          </nav>
+        {% endif %}
+      </div>
+    {% endif %}
+
+  </div>
+{% endblock %}

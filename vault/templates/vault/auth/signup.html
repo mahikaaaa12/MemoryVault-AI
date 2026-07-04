@@ -1,0 +1,159 @@
+{% extends 'vault/auth/auth_base.html' %}
+{% block title %}Sign Up{% endblock %}
+
+{% block auth_content %}
+<h2 style="font-size: 20px; font-weight: 700; margin-bottom: 8px; text-align: center;">Create account</h2>
+<p style="font-size: 14px; color: var(--ts); text-align: center; margin-bottom: 20px;">Get started with your AI Second Brain</p>
+
+{% if error %}
+<div style="background: rgba(239, 68, 68, 0.1); border: 1px solid var(--err); color: #FCA5A5; border-radius: var(--radius-md); padding: 12px; font-size: 13px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
+    <i class="ti ti-alert-circle" style="color: var(--err); font-size: 16px;"></i>
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+
+<form method="POST" action="{% url 'signup' %}" id="signup-form">
+    {% csrf_token %}
+    <div class="form-group">
+        <label for="username">Username</label>
+        <div class="input-wrapper">
+            <input type="text" name="username" id="username" placeholder="Choose a username" required>
+            <i class="ti ti-user"></i>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="full_name">Full Name</label>
+        <div class="input-wrapper">
+            <input type="text" name="full_name" id="full_name" placeholder="Enter your full name" required>
+            <i class="ti ti-id"></i>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="email">Email Address</label>
+        <div class="input-wrapper">
+            <input type="email" name="email" id="email" placeholder="you@example.com" required>
+            <i class="ti ti-mail"></i>
+        </div>
+    </div>
+    
+    <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+            <input type="password" name="password" id="password" placeholder="Create a strong password" required>
+            <i class="ti ti-lock"></i>
+        </div>
+        
+        <!-- Password Strength Meter -->
+        <div style="margin-top: 6px;" id="strength-container">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <div style="flex: 1; height: 4px; background: var(--bs); border-radius: 2px; overflow: hidden;">
+                    <div id="strength-bar" style="height: 100%; width: 0%; background: var(--err); transition: all 300ms ease-out;"></div>
+                </div>
+                <span id="strength-label" style="font-size: 11px; font-weight: 600; color: var(--tt); min-width: 45px;">Weak</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 11px; color: var(--tt);">
+                <div id="chk-length" style="display: flex; align-items: center; gap: 6px;"><i class="ti ti-circle"></i> 8+ characters</div>
+                <div id="chk-upper" style="display: flex; align-items: center; gap: 6px;"><i class="ti ti-circle"></i> Uppercase</div>
+                <div id="chk-lower" style="display: flex; align-items: center; gap: 6px;"><i class="ti ti-circle"></i> Lowercase</div>
+                <div id="chk-number" style="display: flex; align-items: center; gap: 6px;"><i class="ti ti-circle"></i> Number</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="confirm_password">Confirm Password</label>
+        <div class="input-wrapper">
+            <input type="password" name="confirm_password" id="confirm_password" placeholder="Re-enter your password" required>
+            <i class="ti ti-lock"></i>
+        </div>
+    </div>
+
+    <button type="submit" class="btn-auth" style="margin-top: 10px;">
+        <span>Create Account</span>
+        <i class="ti ti-arrow-right"></i>
+    </button>
+</form>
+
+<p style="text-align: center; font-size: 14px; color: var(--ts); margin-top: 24px;">
+    Already have an account? <a href="{% url 'login' %}" class="link-text">Sign in</a>
+</p>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const passInput = document.getElementById('password');
+    const strengthBar = document.getElementById('strength-bar');
+    const strengthLabel = document.getElementById('strength-label');
+    
+    const chkLength = document.getElementById('chk-length');
+    const chkUpper = document.getElementById('chk-upper');
+    const chkLower = document.getElementById('chk-lower');
+    const chkNumber = document.getElementById('chk-number');
+
+    passInput.addEventListener('input', () => {
+        const val = passInput.value;
+        
+        const hasLength = val.length >= 8;
+        const hasUpper = /[A-Z]/.test(val);
+        const hasLower = /[a-z]/.test(val);
+        const hasNumber = /\d/.test(val);
+        
+        updateCheck(chkLength, hasLength);
+        updateCheck(chkUpper, hasUpper);
+        updateCheck(chkLower, hasLower);
+        updateCheck(chkNumber, hasNumber);
+        
+        let score = 0;
+        if (val.length > 0) score += 1;
+        if (hasLength) score += 1;
+        if (hasUpper && hasLower) score += 1;
+        if (hasNumber) score += 1;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(val)) score += 1;
+        
+        let width = '20%';
+        let color = 'var(--err)';
+        let label = 'Weak';
+        
+        if (score === 2) {
+            width = '40%';
+            color = 'var(--warn)';
+            label = 'Fair';
+        } else if (score === 3) {
+            width = '60%';
+            color = 'var(--blue)';
+            label = 'Good';
+        } else if (score === 4) {
+            width = '80%';
+            color = 'var(--a4)';
+            label = 'Strong';
+        } else if (score >= 5) {
+            width = '100%';
+            color = 'var(--ok)';
+            label = 'Excellent';
+        }
+        
+        if (val.length === 0) {
+            width = '0%';
+            color = 'var(--err)';
+            label = 'Weak';
+        }
+        
+        strengthBar.style.width = width;
+        strengthBar.style.background = color;
+        strengthLabel.style.color = color;
+        strengthLabel.textContent = label;
+    });
+
+    function updateCheck(el, met) {
+        if (met) {
+            el.style.color = 'var(--ok)';
+            el.innerHTML = '<i class="ti ti-circle-check"></i> ' + el.textContent.trim();
+        } else {
+            el.style.color = 'var(--tt)';
+            el.innerHTML = '<i class="ti ti-circle"></i> ' + el.textContent.trim();
+        }
+    }
+</script>
+{% endblock %}
